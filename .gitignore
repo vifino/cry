@@ -1,0 +1,6 @@
+.crystal
+cry
+.deps
+.deps.lock
+*.swp
+*.un~

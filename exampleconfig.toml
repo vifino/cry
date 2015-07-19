@@ -1,0 +1,8 @@
+[irc]
+server = "irc.esper.net"
+port = 6697
+ssl = true
+
+nickname = "CRY"
+username = "why"
+realname = "Cry before you die."
