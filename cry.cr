@@ -1,9 +1,15 @@
-require "./src/irc/irc.cr"
+# Cry's main file.
+require "concurrent"
+
 require "toml"
+
+require "./src/irc/irc.cr"
+require "./src/parser/commandparser.cr"
+
 if ARGV[0]?
 	file = File.read(ARGV[0])
 	settings = TOML.parse(file)
-	
+
 	settings_irc = settings["irc"] as Hash
 	password = nil
 	if settings_irc.has_key? "password"
@@ -18,12 +24,17 @@ if ARGV[0]?
 		realname = settings_irc["realname"] as String
 	end
 
+	# Initialization.
+	parser = CommandParser.new
+
 	bot = IRC.new(settings_irc["server"] as String, settings_irc["port"] as Int, settings_irc["nickname"] as String, settings_irc["username"] as String, realname, ssl, password)
 	bot.join "#V"
 	bot.msg "#V", "CRY ME A RIVER."
-	bot.quit
+	bot.run {|msg|
+		puts "Got: #{msg}"
+		puts parser.parse_args(msg)
+	}
 else
 	puts "Usage: cry configfile.toml"
 	exit 1
 end
-

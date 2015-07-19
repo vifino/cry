@@ -37,13 +37,22 @@ class IRC
 		msg = @socket.read_line
 		if msg.is_a? String && !msg.empty?
 			if /^PING :(.*)$/.match msg
-				puts msg
+				puts "=> " + msg
 				send "PONG #{$~[1]}"
 				return nil
 			end
 			return msg.delete("\r\n")
 		end
 		return nil
+	end
+	def run(&block : String ->)
+		while true
+			msg = receive()
+			if msg.is_a? String
+				puts "=> " + msg
+				yield msg
+			end
+		end
 	end
 	def quit reason=""
 		send "QUIT" if reason == ""
@@ -65,7 +74,7 @@ class IRC
 	def notice chan : String, msg : String
 		msg.each_line {|line|
 			length = 512-("PRIVMSG #{chan} :").length
-  		send "PRIVMSG #{chan} :" + line
+			send "PRIVMSG #{chan} :" + line
 		}
 	end
 
