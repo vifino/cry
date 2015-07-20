@@ -2,43 +2,51 @@
 # Replace with actual(tm) parser later.
 class CommandParser
 	def parse_args(string)
+		c = 0
 		i = 0
 		len = string.length
-		out = Array(String).new
+		out = Hash(Int32, Array(String)).new
 		current = ""
 		while i < len
-			ch = string[i]
-			nxt = string[i+1]?
-			prv = string[i-1]?
-			if ch == '"'
-				found, pos = after(string, i + 1, '"', true)
-				raise ArgumentError.new("Unmatched Quotes. (\")") if !found
-				out << string[i+1..pos-1].gsub(/\\./, "\\1")
-				i = pos + 1
-			elsif ch == '\''
-				found, pos = after(string, i + 1, '\'', true)
-				raise ArgumentError.new("Unmatched Quotes. (')") if !found
-				out << string[i+1..pos-1].gsub(/(\\.)/, "\\1")
-				i = pos + 1
-			elsif ch == '\\'
-				if nxt.is_a? Char
-					current = current + nxt
-					i = i + 2
+			out[c] = Array(String).new(10)
+			while i < len
+				ch = string[i]
+				nxt = string[i+1]?
+				prv = string[i-1]?
+				if ch == '"'
+					found, pos = after(string, i + 1, '"', true)
+					raise ArgumentError.new("Unmatched Quotes. (\")") if !found
+					out[c] << string[i+1..pos-1].gsub(/\\(.)/) {|m| m[1]}
+					i = pos + 1
+				elsif ch == '\''
+					found, pos = after(string, i + 1, '\'', true)
+					raise ArgumentError.new("Unmatched Quotes. (')") if !found
+					out[c] << string[i+1..pos-1].gsub(/\\(.)/) {|m| m[1]}
+					i = pos + 1
+				elsif ch == '|'
+					i = i + 1
+					break
+				elsif ch == '\\'
+					if nxt.is_a? Char
+						current = current + nxt
+						i = i + 2
+					else
+						raise ArgumentError.new("Unmatched Escapes. (\\)")
+					end
+				elsif ch == ' '
+					if current != ""
+						out[c] << current
+						current = ""
+					end
+					i = i + 1
 				else
-					raise ArgumentError.new("Unmatched Escapes. (\\)")
+					current = current + ch
+					i = i + 1
 				end
-			elsif ch == ' '
-				if current != ""
-					out << current
-					current = ""
-				end
-				i = i + 1
-			else
-				current = current + ch
-				i = i + 1
 			end
+			out[c] << current if current != ""
+			c = c + 1
 		end
-		out << current if current != ""
 		out
 	end
 
