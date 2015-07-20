@@ -37,29 +37,13 @@ class CommandParser
 		input = BufferedChannel(String).new
 		input.close
 		output = BufferedChannel(String).new
-		error = BufferedChannel(String).new
 		cmds.each_with_index {|i, n|
 			cmd = n[0]
 			args = n[1..n.length]
-			spawn {
-				begin
-					fn = @commands[cmd]?
-					if fn.is_a? Proc
-						fn.call(args, input, output)
-					else
-						output.send "Error: No such command. (#{cmd})"
-						output.close
-					end
-				rescue e
-					output.send "Error: #{e.to_s}"
-					output.close
-				end
-			}
-			new_output = BufferedChannel(String).new
-			input, output = output, new_output
+			input, output = spawn_call(cmd, args, input, output)
 		}
 		out = ""
-		while !output.closed?
+		while true
 			begin
 				out = out + output.receive()
 			rescue
@@ -67,5 +51,27 @@ class CommandParser
 			end
 		end
 		out
+	end
+	private def spawn_call(cmd, args, input, output)
+		spawn {
+			call_cmd(cmd, args, input, output)
+		}
+		input, output = output, BufferedChannel(String).new
+		return input, output
+	end
+	def call_cmd(cmd, args, input, output)
+		begin
+			fn = @commands[cmd]?
+			if fn.is_a? Proc
+				fn.call(args, input, output)
+				output.close if !output.closed?
+			else
+				output.send "Error: No such command. (#{cmd})"
+				output.close
+			end
+		rescue e
+			output.send "Error: #{e.to_s}"
+			output.close
+		end
 	end
 end
