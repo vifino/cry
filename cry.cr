@@ -30,8 +30,11 @@ if ARGV[0]?
 	BasicCommands.new(parser)
 
 	bot = IRC.new(settings_irc["server"] as String, settings_irc["port"] as Int, settings_irc["nickname"] as String, settings_irc["username"] as String, realname, ssl, password)
-	bot.join "#V"
-	bot.msg "#V", "CRY ME A RIVER."
+	chans = (settings_irc["channels"] as String).split
+	chans.each {|c|
+		bot.join c
+		bot.msg c, "CRY ME A RIVER."
+	}
 	bot.run {|msg|
 		if /^:(.*?)!(.*?)@(.*?) PRIVMSG (.*?) :\$(.*)$/.match(msg)
 			spawn {
@@ -39,9 +42,11 @@ if ARGV[0]?
 				begin
 					res = parser.parse($~[1], $~[4], $~[5]).to_s
 				rescue e
-					res = e.to_s
+					res = "Error: #{e.to_s}"
 				end
-				bot.msg $~[4], "@ #{res}"
+				if res != ""
+					bot.msg $~[4], "@ #{res}"
+				end
 			}
 		end
 	}

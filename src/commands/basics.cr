@@ -4,12 +4,11 @@ class BasicCommands
 		parser.command "echo", "display a line of text" {|args, input, output|
 			str = ""
 			args.each {|s| str = str + s + " "}
-			output.send(str.strip)
+			output.send str.strip
 		}
 		parser.command "cat", "read input, write output" {|args, input, output|
 			while true
 				if input.closed?
-					output.close
 					break
 				end
 				inp = input.receive?
@@ -21,12 +20,22 @@ class BasicCommands
 		parser.command "rot13", "decrypt caesar ciphers" {|args, input, output|
 			while true
 				if input.closed?
-					output.close
 					break
 				end
 				inp = input.receive?
 				if inp.is_a? String
 					output.send inp.tr("abcdefghijklmnopqrstuvwxyz", "nopqrstuvwxyzabcdefghijklm")
+				end
+			end
+		}
+		parser.command "date", "display the current time" {|args, input, output|
+			if args[0]? == nil
+				output.send Time.utc_now.to_s("%a %b %d %T UTC %Y")
+			else
+				begin
+					output.send Time.utc_now.to_s(args[0])
+				rescue e
+					output.send "Invalid format."
 				end
 			end
 		}
@@ -36,7 +45,6 @@ class BasicCommands
 				set2 = args[1]? || ""
 				while true
 					if input.closed?
-						output.close
 						break
 					end
 					inp = input.receive?
@@ -46,7 +54,6 @@ class BasicCommands
 				end
 			else
 				output.send "Usage: tr SET1 [SET2]"
-				output.close
 			end
 		}
 	end

@@ -27,7 +27,7 @@ class CommandParser
 		}
 	end
 
-	# Command helpers and overloads.
+	# Command helpers and overload.
 	def command(name : String, help=@noman : String, &block : String, String, Array(String), BufferedChannel(String), BufferedChannel(String) ->)
 		@commands[name] = block
 		@helpdata[name] = help.gsub(/\$NAME\$/, name)
@@ -40,6 +40,9 @@ class CommandParser
 	end
 
 	def parse(nick, channel, string)
+		if string =~ /^\s*$/
+			return ""
+		end
 		cmds = parse_args(string)
 		input = BufferedChannel(String).new
 		input.close
