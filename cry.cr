@@ -5,6 +5,7 @@ require "toml"
 
 require "./src/irc/irc.cr"
 require "./src/parser/commandparser.cr"
+require "./src/commands/*"
 
 if ARGV[0]?
 	file = File.read(ARGV[0])
@@ -26,6 +27,7 @@ if ARGV[0]?
 
 	# Initialization.
 	parser = CommandParser.new
+	BasicCommands.new(parser)
 
 	bot = IRC.new(settings_irc["server"] as String, settings_irc["port"] as Int, settings_irc["nickname"] as String, settings_irc["username"] as String, realname, ssl, password)
 	bot.join "#V"

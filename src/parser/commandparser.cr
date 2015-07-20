@@ -12,7 +12,7 @@ class CommandParser
 	def initialize
 		@commands = Hash(String, (Array(String), BufferedChannel(String), BufferedChannel(String) ->)).new
 		@helpdata = Hash(String, String).new
-		command "man", "An Interface to the command reference manuals" {|args, input, output|
+		command "man", "an interface to the command reference manuals" {|args, input, output|
 			name = args[0]?
 			if name.is_a? String
 				if @helpdata[name]? != nil
