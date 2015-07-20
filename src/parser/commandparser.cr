@@ -10,7 +10,7 @@ class CommandParser
 	@noman = "No manual entry available for $NAME$"
 
 	def initialize
-		@commands = Hash(String, (Array(String), BufferedChannel(String), BufferedChannel(String) ->)).new
+		@commands = Hash(String, (String, String, Array(String), BufferedChannel(String), BufferedChannel(String) ->)).new
 		@helpdata = Hash(String, String).new
 		command "man", "an interface to the command reference manuals" {|args, input, output|
 			name = args[0]?
@@ -27,8 +27,15 @@ class CommandParser
 		}
 	end
 
-	def command(name : String, help=@noman : String, &block : Array(String), BufferedChannel(String), BufferedChannel(String) ->)
+	# Command helpers and overloads.
+	def command(name : String, help=@noman : String, &block : String, String, Array(String), BufferedChannel(String), BufferedChannel(String) ->)
 		@commands[name] = block
+		@helpdata[name] = help.gsub(/\$NAME\$/, name)
+	end
+	def command(name : String, help=@noman : String, &block : Array(String), BufferedChannel(String), BufferedChannel(String) ->)
+		@commands[name] = ->(nick : String, chan : String, args : Array(String), input : BufferedChannel(String), output : BufferedChannel(String)) {
+			block.call args, input, output
+		}
 		@helpdata[name] = help.gsub(/\$NAME\$/, name)
 	end
 
@@ -40,30 +47,30 @@ class CommandParser
 		cmds.each_with_index {|i, n|
 			cmd = n[0]
 			args = n[1..n.length]
-			input, output = spawn_call(cmd, args, input, output)
+			input, output = spawn_call nick, channel, cmd, args, input, output
 		}
 		out = ""
 		while true
 			begin
-				out = out + output.receive()
+				out = out + output.receive
 			rescue
 				break
 			end
 		end
 		out
 	end
-	private def spawn_call(cmd, args, input, output)
+	private def spawn_call(nick, chan, cmd, args, input, output)
 		spawn {
-			call_cmd(cmd, args, input, output)
+			call_cmd nick, chan, cmd, args, input, output
 		}
 		input, output = output, BufferedChannel(String).new
 		return input, output
 	end
-	def call_cmd(cmd, args, input, output)
+	def call_cmd(nick, chan, cmd, args, input, output)
 		begin
 			fn = @commands[cmd]?
 			if fn.is_a? Proc
-				fn.call(args, input, output)
+				fn.call nick, chan, args, input, output
 				output.close if !output.closed?
 			else
 				output.send "Error: No such command. (#{cmd})"
