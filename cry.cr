@@ -31,8 +31,17 @@ if ARGV[0]?
 	bot.join "#V"
 	bot.msg "#V", "CRY ME A RIVER."
 	bot.run {|msg|
-		puts "Got: #{msg}"
-		puts parser.parse_args(msg)
+		if /^:(.*?)!(.*?)@(.*?) PRIVMSG (.*?) :\$(.*)$/.match(msg)
+			spawn {
+				res = ""
+				begin
+					res = parser.parse($~[1], $~[4], $~[5]).to_s
+				rescue e
+					res = e.to_s
+				end
+				bot.msg $~[4], "@ #{res}"
+			}
+		end
 	}
 else
 	puts "Usage: cry configfile.toml"
