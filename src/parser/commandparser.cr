@@ -8,6 +8,7 @@ class CommandParser
 	property helpdata
 	property aliases
 
+	@recursionlimit = 16
 	@noman = "No manual entry available for $NAME$"
 
 	def initialize
@@ -69,12 +70,16 @@ class CommandParser
 	#	@helpdata[name] = help.gsub(/\$NAME\$/, name)
 	#end
 
-	def parse(nick, channel, string, checkaliases=true, checkbackticks=true)
+	def parse(nick, channel, string, callcount=0 : Int, checkaliases=true, checkbackticks=true)
+		callcount = callcount + 1
+		if callcount >= @recursionlimit
+			raise "Error: Recursion limit reached. (Max #{@recursionlimit} invocations)"
+		end
 		if string =~ /^\s*$/
 			return ""
 		end
 		if checkbackticks
-			string = parse_backticks(nick, channel, string)
+			string = parse_backticks(nick, channel, string, callcount)
 		end
 		cmds = parse_args(string)
 
@@ -84,7 +89,7 @@ class CommandParser
 		cmds.each_with_index {|i, n|
 			cmd = n[0]
 			args = n[1..n.length]
-			input, output = spawn_call nick, channel, cmd, args, input, output, checkaliases
+			input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases
 		}
 		out = ""
 		while true
@@ -96,26 +101,26 @@ class CommandParser
 		end
 		out
 	end
-	def parse(nick, channel, cmds : Hash(Int32, Array(String)), input, checkaliases=true)
+	def parse(nick, channel, cmds : Hash(Int32, Array(String)), input, callcount, checkaliases=true)
 		input = BufferedChannel(String).new
 		input.close
 		output = BufferedChannel(String).new
 		cmds.each_with_index {|i, n|
 			cmd = n[0]
 			args = n[1..n.length]
-			input, output = spawn_call nick, channel, cmd, args, input, output, checkaliases
+			input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases
 		}
 		output
 	end
 
-	private def spawn_call(nick, chan, cmd, args, input, output, checkaliases=true)
+	def spawn_call(nick, chan, cmd, args, input, output, callcount, checkaliases=true)
 		spawn {
-			call_cmd nick, chan, cmd, args, input, output, checkaliases
+			call_cmd nick, chan, cmd, args, input, output, callcount, checkaliases
 		}
 		input, output = output, BufferedChannel(String).new
 		return input, output
 	end
-	def call_cmd(nick, chan, cmd, args, input, output, checkaliases=true)
+	def call_cmd(nick, chan, cmd, args, input, output, callcount, checkaliases=true)
 		begin
 			fn = @commands[cmd]?
 			als = @aliases[cmd]?
@@ -123,12 +128,11 @@ class CommandParser
 				fn.call nick, chan, args, input, output
 				output.close if !output.closed?
 			elsif checkaliases && als.is_a? String
-				puts "Alias"
-				parsed = parse_args parse_backticks(nick, chan, als)
+				parsed = parse_args parse_backticks(nick, chan, als, callcount)
 				# add parsed and args together
 				cmds = parsed
 				cmds[cmds.length-1] = cmds[cmds.length-1].concat args
-				output_cmd = parse(nick, chan, cmds, input, false)
+				output_cmd = parse(nick, chan, cmds, input, callcount, true)
 				while true
 					if output_cmd.closed?
 						break
@@ -150,7 +154,7 @@ class CommandParser
 			output.close
 		end
 	end
-	def parse_backticks(nick, channel, string : String)
+	def parse_backticks(nick, channel, string : String, callcount)
 		i = 0
 		len = string.length
 		current = ""
@@ -185,12 +189,15 @@ class CommandParser
 				found, pos = after(string, i + 1, '`', true)
 				raise ArgumentError.new("Unmatched Backticks. (\`)") if !found
 				cmd = string[i+1..pos-1]#.gsub(/\\(.)/) {|m| m[1]}
-				out << parse(nick, channel, cmd, true, false)
+				out << parse(nick, channel, cmd, callcount, true, true)
 				i = pos + 1
 			else
 				current = current + ch
 				i = i + 1
 			end
+		end
+		if current != ""
+			out << current
 		end
 		final = ""
 		out.each {|s| final = final + s}
