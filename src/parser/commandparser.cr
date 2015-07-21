@@ -65,7 +65,7 @@ class CommandParser
 	#	@helpdata[name] = help.gsub(/\$NAME\$/, name)
 	#end
 
-	def parse(nick, channel, string)
+	def parse(nick, channel, string, checkaliases=true)
 		if string =~ /^\s*$/
 			return ""
 		end
@@ -76,7 +76,7 @@ class CommandParser
 		cmds.each_with_index {|i, n|
 			cmd = n[0]
 			args = n[1..n.length]
-			input, output = spawn_call nick, channel, cmd, args, input, output
+			input, output = spawn_call nick, channel, cmd, args, input, output, checkaliases
 		}
 		out = ""
 		while true
@@ -88,9 +88,21 @@ class CommandParser
 		end
 		out
 	end
-	private def spawn_call(nick, chan, cmd, args, input, output)
+	def parse(nick, channel, cmds : Hash(Int32, Array(String)), input, checkaliases=true)
+		input = BufferedChannel(String).new
+		input.close
+		output = BufferedChannel(String).new
+		cmds.each_with_index {|i, n|
+			cmd = n[0]
+			args = n[1..n.length]
+			input, output = spawn_call nick, channel, cmd, args, input, output, checkaliases
+		}
+		output
+	end
+
+	private def spawn_call(nick, chan, cmd, args, input, output, checkaliases=true)
 		spawn {
-			call_cmd nick, chan, cmd, args, input, output
+			call_cmd nick, chan, cmd, args, input, output, checkaliases
 		}
 		input, output = output, BufferedChannel(String).new
 		return input, output
@@ -103,24 +115,25 @@ class CommandParser
 			if fn.is_a? Proc
 				fn.call nick, chan, args, input, output
 				output.close if !output.closed?
-			elsif als.is_a? String
+			elsif checkaliases && als.is_a? String
 				puts "Alias"
 				parsed = (parse_args als)
-				if (parsed[0]?) != nil
-					output.send "Error: No pipes allowed."
+				# add parsed and args together
+				cmds = parsed
+				cmds[cmds.length-1] = cmds[cmds.length-1].concat args
+				output_cmd = parse(nick, chan, cmds, input, false)
+				while true
+					if output_cmd.closed?
+						break
+					end
+					inp = output_cmd.receive?
+					if inp.is_a? String
+						output.send inp
+					else
+						break
+					end
 				end
-				parsed_alias = parsed[0]
-				fn = @commands[parsed_alias[0]]?
-				pp parsed_alias
-				pp fn
-				if fn.is_a? Proc
-					args = parsed_alias[1..parsed_alias.length].concat args
-					fn.call nick, chan, args, input, output
-					output.close if !output.closed?
-				else
-					output.send "Error: No such command. (#{cmd})"
-					output.close
-				end
+				output.close
 			else
 				output.send "Error: No such command. (#{cmd})"
 				output.close
