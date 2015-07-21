@@ -1,12 +1,15 @@
 # Basic commands, such as echo, cat or rot13.
 class BasicCommands
 	def initialize(parser : CommandParser)
-		parser.command "echo", "display a line of text" {|args, input, output|
+		parser.command "echo", "display a line of text" {|nick, chan, args, input, output|
 			str = ""
 			args.each {|s| str = str + s + " "}
 			output.send str.strip
 		}
-		parser.command "cat", "read input, write output" {|args, input, output|
+		parser.command "whoami", "print effective userid" {|nick, chan, args, input, output|
+			output.send nick
+		}
+		parser.command "cat", "read input, write output" {|nick, chan, args, input, output|
 			while true
 				if input.closed?
 					break
@@ -17,7 +20,7 @@ class BasicCommands
 				end
 			end
 		}
-		parser.command "rot13", "decrypt caesar ciphers" {|args, input, output|
+		parser.command "rot13", "decrypt caesar ciphers" {|nick, chan, args, input, output|
 			while true
 				if input.closed?
 					break
@@ -28,7 +31,7 @@ class BasicCommands
 				end
 			end
 		}
-		parser.command "date", "display the current time" {|args, input, output|
+		parser.command "date", "display the current time" {|nick, chan, args, input, output|
 			if args[0]? == nil
 				output.send Time.utc_now.to_s("%a %b %d %T UTC %Y")
 			else
@@ -39,7 +42,7 @@ class BasicCommands
 				end
 			end
 		}
-		parser.command "tr", "translate or delete characters" {|args, input, output|
+		parser.command "tr", "translate or delete characters" {|nick, chan, args, input, output|
 			if args[0]? != nil
 				set1 = args[0]
 				set2 = args[1]? || ""
