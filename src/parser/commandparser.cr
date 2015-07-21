@@ -30,7 +30,7 @@ class CommandParser
 		command "alias", "define or display aliases" {|nick, chan, args, input, output|
 			als_name = args[0]?
 			if als_name.is_a? String
-				snippet = args[1]? || ""
+				snippet = args[1]?
 				if !snippet.is_a? String # Get alias
 					als = @aliases[als_name]?
 					if als.is_a? String
@@ -38,13 +38,17 @@ class CommandParser
 					else
 						output.send "#{als_name} not defined"
 					end
-				else # Set alias
-					begin
-						cmd = parse_args(snippet)
-						@aliases[als_name] = snippet
-						output.send "Set alias #{als_name}"
-					rescue e : ArgumentError
-						output.send "Error: #{e.to_s}"
+				elsif snippet.is_a? String # Set alias
+					if snippet == ""
+						output.send "Cleared alias #{als_name}"
+					else
+						begin
+							cmd = parse_args(snippet)
+							@aliases[als_name] = snippet
+							output.send "Set alias #{als_name}"
+						rescue e : ArgumentError
+							output.send "Error: #{e.to_s}"
+						end
 					end
 				end
 			else
@@ -65,11 +69,15 @@ class CommandParser
 	#	@helpdata[name] = help.gsub(/\$NAME\$/, name)
 	#end
 
-	def parse(nick, channel, string, checkaliases=true)
+	def parse(nick, channel, string, checkaliases=true, checkbackticks=true)
 		if string =~ /^\s*$/
 			return ""
 		end
+		if checkbackticks
+			string = parse_backticks(nick, channel, string)
+		end
 		cmds = parse_args(string)
+
 		input = BufferedChannel(String).new
 		input.close
 		output = BufferedChannel(String).new
@@ -111,13 +119,12 @@ class CommandParser
 		begin
 			fn = @commands[cmd]?
 			als = @aliases[cmd]?
-			pp als
 			if fn.is_a? Proc
 				fn.call nick, chan, args, input, output
 				output.close if !output.closed?
 			elsif checkaliases && als.is_a? String
 				puts "Alias"
-				parsed = (parse_args als)
+				parsed = parse_args parse_backticks(nick, chan, als)
 				# add parsed and args together
 				cmds = parsed
 				cmds[cmds.length-1] = cmds[cmds.length-1].concat args
@@ -142,5 +149,51 @@ class CommandParser
 			output.send "Error: #{e.to_s}"
 			output.close
 		end
+	end
+	def parse_backticks(nick, channel, string : String)
+		i = 0
+		len = string.length
+		current = ""
+		out = [] of String
+		isquote = false
+		issinglequote = false
+		while i < len
+			ch = string[i]
+			nxt = string[i+1]?
+			prv = string[i-1]?
+			if ch == '"'
+				#found, pos = after(string, i + 1, '"', true)
+				#raise ArgumentError.new("Unmatched Quotes. (\")") if !found
+				#out[c] << string[i+1..pos-1].gsub(/\\(.)/) {|m| m[1]}
+				isquote = !isquote
+				current = current + ch
+				i = i + 1
+			elsif ch == '\''
+				issinglequote = !issinglequote
+				current = current + ch
+				i = i + 1
+			elsif ch == '\\'
+				if nxt.is_a? Char
+					current = current + ch + nxt
+					i = i + 2
+				else
+					raise ArgumentError.new("Unmatched Escapes. (\\)")
+				end
+			elsif ch == '`' && !isquote && !issinglequote
+				out << current
+				current = ""
+				found, pos = after(string, i + 1, '`', true)
+				raise ArgumentError.new("Unmatched Backticks. (\`)") if !found
+				cmd = string[i+1..pos-1]#.gsub(/\\(.)/) {|m| m[1]}
+				out << parse(nick, channel, cmd, true, false)
+				i = pos + 1
+			else
+				current = current + ch
+				i = i + 1
+			end
+		end
+		final = ""
+		out.each {|s| final = final + s}
+		final
 	end
 end

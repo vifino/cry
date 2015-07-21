@@ -1,7 +1,7 @@
-# Command parser
-# Replace with actual(tm) parser later.
+# Arg parser
+# Parses the string to a useable datastructure.
 class CommandParser
-	def parse_args(string)
+	def parse_args(string : String)
 		c = 0
 		i = 0
 		len = string.length
@@ -50,7 +50,7 @@ class CommandParser
 		out
 	end
 
-	def after(string, pos, char, checkescapes=false)
+	private def after(string, pos, char, checkescapes=false)
 		i = pos
 		if checkescapes
 			while i < string.length
