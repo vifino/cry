@@ -101,7 +101,7 @@ class CommandParser
 		end
 		out
 	end
-	def parse(nick, channel, cmds : Hash(Int32, Array(String)), input, callcount, checkaliases=true)
+	def parse(nick, channel, cmds : Hash(Int32, Array(String)), input, callcount=0, checkaliases=true)
 		input = BufferedChannel(String).new
 		input.close
 		output = BufferedChannel(String).new
@@ -113,14 +113,14 @@ class CommandParser
 		output
 	end
 
-	def spawn_call(nick, chan, cmd, args, input, output, callcount, checkaliases=true)
+	def spawn_call(nick, chan, cmd, args, input, output, callcount=0, checkaliases=true)
 		spawn {
 			call_cmd nick, chan, cmd, args, input, output, callcount, checkaliases
 		}
 		input, output = output, BufferedChannel(String).new
 		return input, output
 	end
-	def call_cmd(nick, chan, cmd, args, input, output, callcount, checkaliases=true)
+	def call_cmd(nick, chan, cmd, args, input, output, callcount=0, checkaliases=true)
 		begin
 			fn = @commands[cmd]?
 			als = @aliases[cmd]?
@@ -154,7 +154,7 @@ class CommandParser
 			output.close
 		end
 	end
-	def parse_backticks(nick, channel, string : String, callcount)
+	def parse_backticks(nick, channel, string : String, callcount=0)
 		i = 0
 		len = string.length
 		current = ""

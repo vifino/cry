@@ -5,6 +5,7 @@ require "toml"
 
 require "./src/irc/irc.cr"
 require "./src/parser/commandparser.cr"
+require "./src/permissions/permissions.cr"
 require "./src/commands/*"
 
 if ARGV[0]?
@@ -27,13 +28,27 @@ if ARGV[0]?
 
 	# Initialization.
 	parser = CommandParser.new
+	permissions = Permissions.new
+	settings_permissions = settings["permissions"] as Hash
+	settings_permissions.each_with_index {|user, perms|
+		if perms.is_a? String
+			perms.split.each {|perm|
+				permissions.user_addgroup(user, perm)
+			}
+		elsif perms.is_a? Hash
+			perms.each {|perm|
+				permissions.user_addgroup(user, perm)
+			}
+		end
+	}
 	BasicCommands.new(parser)
+	PermissionCommands.new(parser, permissions)
 
 	bot = IRC.new(settings_irc["server"] as String, settings_irc["port"] as Int, settings_irc["nickname"] as String, settings_irc["username"] as String, realname, ssl, password)
 	chans = (settings_irc["channels"] as String).split
 	chans.each {|c|
 		bot.join c
-		bot.msg c, "CRY ME A RIVER."
+		#bot.msg c, "CRY ME A RIVER."
 	}
 	bot.run {|msg|
 		if /^:(.*?)!(.*?)@(.*?) PRIVMSG (.*?) :\$(.*)$/.match(msg)
