@@ -159,20 +159,21 @@ class CommandParser
 		len = string.length
 		current = ""
 		out = [] of String
-		isquote = false
+		#isquote = false
 		issinglequote = false
 		while i < len
 			ch = string[i]
 			nxt = string[i+1]?
 			prv = string[i-1]?
-			if ch == '"'
-				#found, pos = after(string, i + 1, '"', true)
-				#raise ArgumentError.new("Unmatched Quotes. (\")") if !found
-				#out[c] << string[i+1..pos-1].gsub(/\\(.)/) {|m| m[1]}
-				isquote = !isquote
-				current = current + ch
-				i = i + 1
-			elsif ch == '\''
+			#if ch == '"'
+			#	#found, pos = after(string, i + 1, '"', true)
+			#	#raise ArgumentError.new("Unmatched Quotes. (\")") if !found
+			#	#out[c] << string[i+1..pos-1].gsub(/\\(.)/) {|m| m[1]}
+			#	isquote = !isquote
+			#	current = current + ch
+			#	i = i + 1
+			#els
+			if ch == '\''
 				issinglequote = !issinglequote
 				current = current + ch
 				i = i + 1
@@ -183,7 +184,7 @@ class CommandParser
 				else
 					raise ArgumentError.new("Unmatched Escapes. (\\)")
 				end
-			elsif ch == '`' && !isquote && !issinglequote
+			elsif ch == '`' && !issinglequote # && !isquote
 				out << current
 				current = ""
 				found, pos = after(string, i + 1, '`', true)
