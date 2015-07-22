@@ -137,12 +137,16 @@ class Forth # Do not use. It's broken.
 					raise "Wrong types to *"
 				},
 			"/"     => binary { |a, b|
-					return a / b as Int32 if a.is_a? Int32 && a.is_a? Int32
+					return (a / b as Int32) as Int32 if a.is_a? Int32 && a.is_a? Int32
 					raise "Wrong types to /"
 				},
 			"%"     => binary { |a, b|
 					return a ^ b as Int32 if a.is_a? Int32 && a.is_a? Int32
 					raise "Wrong types to %"
+				},
+			"xor"     => binary { |a, b|
+					return a ^ b as Int32 if a.is_a? Int32 && a.is_a? Int32
+					raise "Wrong types to *"
 				},
 			"<"     => binary_boolean "<" { |a, b| a < b },
 			">"     => binary_boolean ">" { |a, b| a > b },
@@ -176,18 +180,13 @@ class Forth # Do not use. It's broken.
 	def parse(expression : Array(String))
 		begin
 			expression.each do |statement|
-				puts statement
 				if @skip == true && statement == "fi"
-					puts "skip"
 					next
 				elsif @word.empty? && statement == ";"
-					puts "word empty"
 					@word << statement
 				elsif @dictionary.has_key? statement
-					puts "calling"
 					@dictionary[statement].call
 				elsif @customwords.has_key? statement
-					puts "custom"
 					parse(@customwords[statement])
 				else
 					if isnumber(statement)
