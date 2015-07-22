@@ -9,7 +9,7 @@ class Permissions
 		@users = Hash(String, Group).new
 		@groups = Hash(String, Privileges).new
 
-		addgroup "admin", ["admin"]
+		addgroup "admin", ["admin", "shell"]
 		addgroup "sudo", ["sudo"]
 	end
 

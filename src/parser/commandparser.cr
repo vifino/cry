@@ -58,17 +58,19 @@ class CommandParser
 		}
 	end
 
-	# Command helpers and overload.
+	# Helpers and overloads.
 	def command(name : String, help=@noman : String, &block : String, String, Array(String), BufferedChannel(String), BufferedChannel(String) ->)
 		@commands[name] = block
 		@helpdata[name] = help.gsub(/\$NAME\$/, name)
 	end
-	#def command(name : String, help=@noman : String, &block : Array(String), BufferedChannel(String), BufferedChannel(String) ->)
-	#	@commands[name] = ->(nick : String, chan : String, args : Array(String), input : BufferedChannel(String), output : BufferedChannel(String)) {
-	#		block.call args, input, output
-	#	}
-	#	@helpdata[name] = help.gsub(/\$NAME\$/, name)
-	#end
+	def alias(name, content)
+		parse_args(content)
+		@aliases[name] = snippet
+	end
+	def alias(name)
+		parse_args(content)
+		@aliases.delete name
+	end
 
 	def parse(nick, channel, string, callcount=0 : Int, checkaliases=true, checkbackticks=true)
 		callcount = callcount + 1
@@ -184,7 +186,7 @@ class CommandParser
 				else
 					raise ArgumentError.new("Unmatched Escapes. (\\)")
 				end
-			elsif ch == '`' && !issinglequote # && !isquote
+			elsif ch == '`' && !issinglequote # && !isquote5
 				out << current
 				current = ""
 				found, pos = after(string, i + 1, '`', true)

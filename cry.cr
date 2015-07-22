@@ -43,6 +43,7 @@ if ARGV[0]?
 	}
 	BasicCommands.new(parser)
 	PermissionCommands.new(parser, permissions)
+	EsolangCommands.new(parser)
 
 	bot = IRC.new(settings_irc["server"] as String, settings_irc["port"] as Int, settings_irc["nickname"] as String, settings_irc["username"] as String, realname, ssl, password)
 	chans = (settings_irc["channels"] as String).split
