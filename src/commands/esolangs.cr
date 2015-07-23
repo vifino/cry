@@ -2,25 +2,32 @@
 require "../parser/commandhelper.cr"
 class EsolangCommands
 	def initialize(parser : CommandParser)
-		parser.command "bf", "brainfuck interpreter" {|nick, chan, args, input, output|
-			if !args.empty?
+		parser.command "bf", "brainfuck interpreter" {|a|
+			if !a.args.empty?
 				insts = ""
-				args.each {|a| insts = insts + a}
+				a.args.each {|a| insts = insts + a}
 				bfout = BufferedChannel(String).new
 				Thread.new {
 					Brainfuck.parse(bfout, insts).run
 					bfout.close
 				}
-				CommandHelper.pipe(bfout, output)
+				CommandHelper.pipe(bfout, a.output)
+			else
+				a.output.send "Usage bf [brainfuck instructions]"
 			end
 		}
-		parser.command "forth", "forth interpreter" {|nick, chan, args, input, output|
-			forthout = BufferedChannel(String).new
-			Thread.new {
-				forth = Forth.new(input, forthout)
-				forth.parse(args)
-			}
-			CommandHelper.pipe(forthout, output)
+		parser.command "forth", "forth interpreter" {|a|
+			if !a.args.empty?
+				forthout = BufferedChannel(String).new
+				Thread.new {
+					forth = Forth.new(a.input, forthout)
+					forth.parse(a.args)
+					forthout.close
+				}
+				CommandHelper.pipe(forthout, a.output)
+			else
+				a.output.send "Usage: forth [TOKENS..]"
+			end
 		}
 	end
 end

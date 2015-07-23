@@ -12,55 +12,68 @@ class CommandParser
 	@recursionlimit = 16
 	@noman = "No manual entry available for $NAME$"
 
+	struct Arguments
+		property nick
+		property chan
+		property args
+		property input
+		property output
+		property callcount
+
+		def initialize(@nick, @chan, @args, @input, @output, @callcount)
+		end
+	end
+
 	def initialize
-		@commands = Hash(String, (String, String, Array(String), BufferedChannel(String), BufferedChannel(String) ->)).new
+		#@commands = Hash(String, (String, String, Array(String), BufferedChannel(String), BufferedChannel(String) ->)).new
+		@commands = Hash(String, (Arguments ->)).new
 		@helpdata = Hash(String, String).new
 		@aliases = Hash(String, String).new
-		command "man", "an interface to the command reference manuals" {|nick, chan, args, input, output|
-			name = args[0]?
+		command "man", "an interface to the command reference manuals" {|a|
+			name = a.args[0]?
 			if name.is_a? String
 				if @helpdata[name]? != nil
-					output.send "#{name} - #{@helpdata[name]}"
+					a.output.send "#{name} - #{@helpdata[name]}"
 				else
-					output.send @noman.gsub(/\$NAME\$/, name)
+					a.output.send @noman.gsub(/\$NAME\$/, name)
 				end
 			else
-				output.send "What manual page do you want?"
+				a.output.send "What manual page do you want?"
 			end
-			output.close
+			a.output.close
 		}
-		command "alias", "define or display aliases" {|nick, chan, args, input, output|
-			als_name = args[0]?
+		command "alias", "define or display aliases" {|a|
+			als_name = a.args[0]?
 			if als_name.is_a? String
-				snippet = args[1]?
+				snippet = a.args[1]?
 				if !snippet.is_a? String # Get alias
 					als = @aliases[als_name]?
 					if als.is_a? String
-						output.send als
+						a.output.send als
 					else
-						output.send "#{als_name} not defined"
+						a.output.send "#{als_name} not defined"
 					end
 				elsif snippet.is_a? String # Set alias
 					if snippet == ""
-						output.send "Cleared alias #{als_name}"
+						a.output.send "Cleared alias #{als_name}"
 					else
 						begin
 							cmd = parse_args(snippet)
 							@aliases[als_name] = snippet
-							output.send "Set alias #{als_name}"
+							a.output.send "Set alias #{als_name}"
 						rescue e : ArgumentError
-							output.send "Error: #{e.to_s}"
+							a.output.send "Error: #{e.to_s}"
 						end
 					end
 				end
 			else
-				output.send "Usage: alias test [\"echo test\"]"
+				a.output.send "Usage: alias test [\"echo test\"]"
 			end
 		}
 	end
 
 	# Helpers and overloads.
-	def command(name : String, help=@noman : String, &block : String, String, Array(String), BufferedChannel(String), BufferedChannel(String) ->)
+	def command(name : String, help=@noman : String, &block : Arguments ->)
 		@commands[name] = block
 		@helpdata[name] = help.gsub(/\$NAME\$/, name)
 	end
@@ -129,7 +142,8 @@ class CommandParser
 			fn = @commands[cmd]?
 			als = @aliases[cmd]?
 			if fn.is_a? Proc
-				fn.call nick, chan, args, input, output
+				o = Arguments.new(nick, chan, args, input, output, callcount)
+				fn.call o
 				output.close if !output.closed?
 			elsif checkaliases && als.is_a? String
 				parsed = parse_args parse_backticks(nick, chan, als, callcount)

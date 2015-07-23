@@ -1,34 +1,34 @@
 # Permission checking commands
 class PermissionCommands
 	def initialize(parser : CommandParser, permissions : Permissions)
-		parser.command "groups", "display current group names" {|nick, chan, args, input, output|
-			perms = permissions.users[nick]?
+		parser.command "groups", "display current group names" {|a|
+			perms = permissions.users[a.nick]?
 			if perms.is_a? Array
 				res = ""
 				perms.each {|g|
 					res = res + g + " "
 				}
-				output.send res
+				a.output.send res
 			else
-				output.send "No groups."
+				a.output.send "No groups."
 			end
 		}
-		parser.command "sudo", "execute a command as another user" {|nick, chan, args, input, output|
-			if args[0]? != nil
-				user = args[0]
-				command = args[1..args.length]
-				if permissions.user_hasprivilege(nick, "sudo")
+		parser.command "sudo", "execute a command as another user" {|a|
+			if a.args[0]? != nil
+				user = a.args[0]
+				command = a.args[1..a.args.length]
+				if permissions.user_hasprivilege(a.nick, "sudo")
 					cmd = command[0]?
 					if cmd.is_a? String
-						parser.call_cmd(user, chan, cmd, command[1..args.length], input, output)
+						parser.call_cmd(user, a.chan, cmd, command[1..a.args.length], a.input, a.output, a.callcount)
 					else
-						output.send "Usage: sudo user [command...]"
+						a.output.send "Usage: sudo user [command...]"
 					end
 				else
-					output.send "No permission to do that. (sudo)"
+					a.output.send "No permission to do that. (sudo)"
 				end
 			else
-				output.send "Usage: sudo user [command...]"
+				a.output.send "Usage: sudo user [command...]"
 			end
 		}
 	end

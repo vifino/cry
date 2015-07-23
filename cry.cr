@@ -61,8 +61,8 @@ if ARGV[0]?
 					res = "Error: #{e.to_s}"
 				end
 				if res != ""
-					($~[4]).each_line {|l|
-						bot.msg l, "@ #{res}"
+					(res + "\n").split('\n').each {|l|
+						bot.msg $~[4], "@ #{l}"
 					}
 				end
 			}
