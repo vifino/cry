@@ -2,6 +2,7 @@
 require "concurrent"
 
 require "./argparser.cr"
+require "./commandhelper.cr"
 
 class CommandParser
 	property commands
@@ -116,9 +117,10 @@ class CommandParser
 	end
 
 	def spawn_call(nick, chan, cmd, args, input, output, callcount=0, checkaliases=true)
-		spawn {
+		spawn do
 			call_cmd nick, chan, cmd, args, input, output, callcount, checkaliases
-		}
+			return
+		end
 		input, output = output, BufferedChannel(String).new
 		return input, output
 	end
@@ -135,17 +137,7 @@ class CommandParser
 				cmds = parsed
 				cmds[cmds.length-1] = cmds[cmds.length-1].concat args
 				output_cmd = parse(nick, chan, cmds, input, callcount, true)
-				while true
-					if output_cmd.closed?
-						break
-					end
-					inp = output_cmd.receive?
-					if inp.is_a? String
-						output.send inp
-					else
-						break
-					end
-				end
+				CommandHelper.pipe output_cmd, output
 				output.close
 			else
 				output.send "Error: No such command. (#{cmd})"

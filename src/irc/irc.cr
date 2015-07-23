@@ -61,14 +61,18 @@ class IRC
 
 	# Message sending functions
 	def send msg=""
-		@socket.puts(msg + "\r\n")
-		puts "<= " + msg
-		@socket.flush
+		if msg != ""
+			@socket.puts(msg + "\r\n")
+			puts "<= " + msg
+			@socket.flush
+		end
 	end
 	def msg chan : String, msg : String
 		msg.each_line {|line|
-			length = 512-("PRIVMSG #{chan} :").length
-			send "PRIVMSG #{chan} :" + line
+			if line != ""
+				length = 512-("PRIVMSG #{chan} :").length
+				send "PRIVMSG #{chan} :" + line
+			end
 		}
 	end
 	def notice chan : String, msg : String

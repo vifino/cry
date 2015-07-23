@@ -61,7 +61,9 @@ if ARGV[0]?
 					res = "Error: #{e.to_s}"
 				end
 				if res != ""
-					bot.msg $~[4], "@ #{res}"
+					($~[4]).each_line {|l|
+						bot.msg l, "@ #{res}"
+					}
 				end
 			}
 		end

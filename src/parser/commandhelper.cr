@@ -1,0 +1,25 @@
+class CommandHelper
+	def self.pipe(a : BufferedChannel(String), b : BufferedChannel(String))
+		while true
+			break if b.closed?
+			tmp = a.receive?
+			if tmp.is_a? String
+				b.send tmp
+			else
+				break
+			end
+		end
+	end
+
+	def self.pipe(a : BufferedChannel(String), b : BufferedChannel(String), &block : String -> String)
+		while true
+			break if b.closed?
+			tmp = a.receive?
+			if tmp.is_a? String
+				b.send block.call tmp
+			else
+				break
+			end
+		end
+	end
+end

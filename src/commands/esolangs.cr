@@ -1,70 +1,98 @@
 # Esolang implementations.
+require "../parser/commandhelper.cr"
 class EsolangCommands
 	def initialize(parser : CommandParser)
 		parser.command "bf", "brainfuck interpreter" {|nick, chan, args, input, output|
 			if !args.empty?
-				addr = 0
-				inst = 0
 				insts = ""
-				inputcache = ""
 				args.each {|a| insts = insts + a}
-				tape = Hash(Int32, Int32).new
-				tape[0] = 0
-				while true
-					puts "Loop - addr:#{addr} inst:#{inst} = #{insts[inst]}"
-					break if inst >= insts.length
-					case insts[inst]
-					when '+'
-						if tape[addr] >= 256
-							tape[addr] = 0
-						else
-							tape[addr] += 1
-						end
-					when '-'
-						if tape[addr] < 0
-							tape[addr] = 255
-						else
-							tape[addr] -= 1
-						end
-					when '>'
-						addr += 1
-						tape[addr] = 0 if !tape.has_key? addr
-					when '<'
-						addr -= 1
-						tape[addr] = 0 if !tape.has_key? addr
-					when '.'
-						puts "output"
-						output.send tape[addr].chr.to_s
-					when '['
-						inst = bf_scan(inst, 1, insts) if tape[addr] == 0
-					when ']'
-						inst = bf_scan(inst, -1, insts) if tape[addr] != 0
-					end
-					inst +=1
-				end
+				bfout = BufferedChannel(String).new
+				Thread.new {
+					Brainfuck.parse(bfout, insts).run
+					bfout.close
+				}
+				CommandHelper.pipe(bfout, output)
 			end
-			puts "done."
 		}
 		parser.command "forth", "forth interpreter" {|nick, chan, args, input, output|
-			forth = Forth.new(input, output)
-			forth.parse(args)
+			forthout = BufferedChannel(String).new
+			Thread.new {
+				forth = Forth.new(input, forthout)
+				forth.parse(args)
+			}
+			CommandHelper.pipe(forthout, output)
 		}
 	end
-	private def bf_scan(inst : Int32, dir : Int32, insts : String)
-		nest = dir
-		while dir*nest > 0
-			inst += dir
-			case insts[inst + dir]
-			when '['
-				nest += 1
-			when ']'
-				nest -= 1
+end
+class Brainfuck # Mostly stolen from Crystal's examples.
+	struct Tape
+		def initialize
+			@tape = [0]
+			@pos = 0
+		end
+		def get
+			@tape[@pos]
+		end
+		def inc
+			@tape[@pos] += 1
+		end
+		def dec
+			@tape[@pos] -= 1
+		end
+		def advance
+			@pos += 1
+			@tape << 0 if @tape.size <= @pos
+		end
+		def devance
+			@pos -= 1
+			raise "pos should be > 0" if @pos < 0
+		end
+	end
+
+	def initialize(@output, @chars, @bracket_map); end
+
+	def run
+		tape = Tape.new
+		pc = 0
+		while pc < @chars.length
+			case @chars[pc]
+				when '>'; tape.advance
+				when '<'; tape.devance
+				when '+'; tape.inc
+				when '-'; tape.dec
+				when '.'; @output.send tape.get.chr.to_s
+				when '['; pc = @bracket_map[pc] if tape.get == 0
+				when ']'; pc = @bracket_map[pc] if tape.get != 0
+			end
+			pc += 1
+		end
+	end
+
+	def self.parse(output, text)
+		parsed = [] of Char
+		bracket_map = {} of Int32 => Int32
+		leftstack = [] of Int32
+		pc = 0
+		text.each_char do |char|
+			if "[]<>+-,.".includes?(char)
+				parsed << char
+				if char == '['
+					leftstack << pc
+				elsif char == ']'
+					raise ArgumentError.new("Unmatched ]") if leftstack.empty?
+					left = leftstack.pop
+					right = pc
+					bracket_map[left] = right
+					bracket_map[right] = left
+				end
+				pc += 1
 			end
 		end
-		return inst
+		raise ArgumentError.new("Unmatched [") if !leftstack.empty?
+		Brainfuck.new(output, parsed, bracket_map)
 	end
 end
-class Forth # Do not use. It's broken.
+class Forth
 	alias T = Int32 | String
 
 	def pop

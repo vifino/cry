@@ -1,4 +1,5 @@
 # Basic commands, such as echo, cat or rot13.
+require "../parser/commandhelper.cr"
 class BasicCommands
 	def initialize(parser : CommandParser)
 		parser.command "echo", "display a line of text" {|nick, chan, args, input, output|
@@ -10,26 +11,12 @@ class BasicCommands
 			output.send nick
 		}
 		parser.command "cat", "read input, write output" {|nick, chan, args, input, output|
-			while true
-				if input.closed?
-					break
-				end
-				inp = input.receive?
-				if inp.is_a? String
-					output.send inp
-				end
-			end
+			CommandHelper.pipe(input, output)
 		}
 		parser.command "rot13", "decrypt caesar ciphers" {|nick, chan, args, input, output|
-			while true
-				if input.closed?
-					break
-				end
-				inp = input.receive?
-				if inp.is_a? String
-					output.send inp.tr("abcdefghijklmnopqrstuvwxyz", "nopqrstuvwxyzabcdefghijklm")
-				end
-			end
+			CommandHelper.pipe(input, output) {|s|
+				s.tr("abcdefghijklmnopqrstuvwxyz", "nopqrstuvwxyzabcdefghijklm")
+			}
 		}
 		parser.command "date", "display the current time" {|nick, chan, args, input, output|
 			if args[0]? == nil
@@ -40,6 +27,19 @@ class BasicCommands
 				rescue e
 					output.send "Invalid format."
 				end
+			end
+		}
+		parser.command "time", "time a simple command" {|nick, chan, args, input, output|
+			if args[0]? != nil
+				command = args[0..args.length]
+				cmd = command[0]?
+				start = Time.now
+				outp = BufferedChannel(String).new
+				parser.call_cmd(nick, chan, cmd, command[1..command.length], input, outp)
+				CommandHelper.pipe(outp, output)
+				output.send "\nTook: #{Time.new - start}"
+			else
+				output.send "Usage: time [command...]"
 			end
 		}
 		parser.command "tr", "translate or delete characters" {|nick, chan, args, input, output|
