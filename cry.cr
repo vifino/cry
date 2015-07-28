@@ -41,9 +41,28 @@ if ARGV[0]?
 			}
 		end
 	}
-	BasicCommands.new(parser)
-	PermissionCommands.new(parser, permissions)
-	EsolangCommands.new(parser)
+	if settings["aliases"]?
+		settings_aliases = settings["aliases"] as Hash
+		settings_aliases.each_with_index {|als, content|
+			content = content as String
+			parser.set_alias als, content
+		}
+	end
+	if settings["modules"]?
+		settings_modules = settings["modules"] as Hash
+		loaded = settings_modules["load"] as Array
+		loaded.each {|mod|
+			mod = mod as String
+			case mod
+			when "basic"
+				BasicCommands.new(parser)
+			when "permissions"
+				PermissionCommands.new(parser, permissions)
+			when "esolangs"
+				EsolangCommands.new(parser)
+			end
+		}
+	end
 
 	bot = IRC.new(settings_irc["server"] as String, settings_irc["port"] as Int, settings_irc["nickname"] as String, settings_irc["username"] as String, realname, ssl, password)
 	chans = (settings_irc["channels"] as String).split

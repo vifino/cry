@@ -47,7 +47,7 @@ class CommandParser
 			if als_name.is_a? String
 				snippet = a.args[1]?
 				if !snippet.is_a? String # Get alias
-					als = @aliases[als_name]?
+					als = get_alias als_name
 					if als.is_a? String
 						a.output.send als
 					else
@@ -55,11 +55,12 @@ class CommandParser
 					end
 				elsif snippet.is_a? String # Set alias
 					if snippet == ""
+						del_alias! als_name
 						a.output.send "Cleared alias #{als_name}"
 					else
 						begin
 							cmd = parse_args(snippet)
-							@aliases[als_name] = snippet
+							set_alias als_name,snippet
 							a.output.send "Set alias #{als_name}"
 						rescue e : ArgumentError
 							a.output.send "Error: #{e.to_s}"
@@ -77,12 +78,14 @@ class CommandParser
 		@commands[name] = block
 		@helpdata[name] = help.gsub(/\$NAME\$/, name)
 	end
-	def alias(name, content)
-		parse_args(content)
+	def set_alias(name, snippet)
+		parse_args(snippet)
 		@aliases[name] = snippet
 	end
-	def alias(name)
-		parse_args(content)
+	def get_alias(name)
+		@aliases[name]?
+	end
+	def del_alias!(name)
 		@aliases.delete name
 	end
 
