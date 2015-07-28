@@ -57,6 +57,8 @@ if ARGV[0]?
 				PermissionCommands.new(parser, permissions)
 			when "esolangs"
 				EsolangCommands.new(parser)
+			when "pnacl"
+				PNaCLCommands.new(settings, parser)
 			end
 		}
 	end

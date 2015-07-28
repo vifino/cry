@@ -5,3 +5,4 @@ libs
 .deps.lock
 *.swp
 *.un~
+config.toml

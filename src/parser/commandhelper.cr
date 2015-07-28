@@ -22,4 +22,17 @@ class CommandHelper
 			end
 		end
 	end
+	def self.readall(a : BufferedChannel(String))
+		o = ""
+		while true
+			break if a.closed?
+			tmp = a.receive?
+			if tmp.is_a? String
+				o = o + tmp
+			else
+				break
+			end
+		end
+		o
+	end
 end
