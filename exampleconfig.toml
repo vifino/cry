@@ -7,13 +7,13 @@ nickname = "CRY"
 username = "why"
 realname = "Cry before you die."
 
-channels = "#V"
+channels = ["#V"]
 
 [modules]
 load = ["basic", "permissions", "esolangs"]
 
 [permissions]
-vifino = "admin sudo"
+vifino = ["admin", "sudo"]
 
 [aliases]
 hello = "echo 'Hello World!'"

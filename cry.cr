@@ -31,12 +31,9 @@ if ARGV[0]?
 	permissions = Permissions.new
 	settings_permissions = settings["permissions"] as Hash
 	settings_permissions.each_with_index {|user, perms|
-		if perms.is_a? String
-			perms.split.each {|perm|
-				permissions.user_addgroup(user, perm)
-			}
-		elsif perms.is_a? Hash
+		if perms.is_a? Array
 			perms.each {|perm|
+				perm = perm as String
 				permissions.user_addgroup(user, perm)
 			}
 		end
@@ -65,8 +62,9 @@ if ARGV[0]?
 	end
 
 	bot = IRC.new(settings_irc["server"] as String, settings_irc["port"] as Int, settings_irc["nickname"] as String, settings_irc["username"] as String, realname, ssl, password)
-	chans = (settings_irc["channels"] as String).split
+	chans = (settings_irc["channels"] as Array)
 	chans.each {|c|
+		c = c as String
 		bot.join c
 		#bot.msg c, "CRY ME A RIVER."
 	}
