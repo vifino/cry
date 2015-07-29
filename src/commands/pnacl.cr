@@ -5,20 +5,43 @@ require "tempfile"
 class PNaCLCommands
 	def initialize(settings_all, parser)
 		if settings_all["pnacl"]?
-			pnacl = PNaCL.new(settings_all)
-			parser.command "pnacl-cc", "compile c code to pnacl pexe" {|a|
+			settings = settings_all["pnacl"] as Hash
+
+			@pnacl_clang = settings["pnacl_clang"] as String
+			@pnacl_finalize = settings["pnacl_finalize"] as String
+			@pnacl_translate = settings["pnacl_translate"] as String
+			@pnacl_arch = settings["arch"] as String
+			@sel_ldr = settings["sel_ldr"] as String
+
+			pnacl = PNaCL.new(@pnacl_clang, @pnacl_finalize, @pnacl_translate, @pnacl_arch, @sel_ldr)
+			parser.command "cc", "compile c code" {|a|
 				code = CommandHelper.readall(a.input)
-				ary = pnacl.pnacl_cc(code, true, [] of String)
-				p ary
-				#s = ary[0]
-				#tmp = ary[1]
-				#if s.success?
-				#	a.output.send tmp.read
-				#	tmp.unlink
-				#else
-				#	a.output.send "Error: pnacl-cc errored:\n#{s.output.not_nil!}"
-				#	tmp.unlink
-				#end
+				return if code == ""
+				o = BufferedChannel(String).new
+				Thread.new {
+					args_cmd = ["-x", "c", "-"]
+					a.args.each {|arg|
+						args_cmd << arg
+					}
+					args_cmd << "-o"
+					out_tmp = Tempfile.new "cry_pnacl"
+					out_tmp.close
+					args_cmd << out_tmp.path
+					status = Process.run("#{@pnacl_clang}", args: args_cmd, output: true, input: code)
+					if status.success?
+						nexepath = "#{out_tmp.path}.nexe"
+						pp out_tmp.path
+						pp nexepath
+						pnacl.pnacl_finalize(out_tmp.path)
+						pnacl.translate(out_tmp.path, nexepath)
+						File.delete(out_tmp.path)
+						o.send pnacl.sel_ldr(nexepath)
+						File.delete(nexepath)
+					else
+						o.send "Error: pnacl-clang errored:\n#{status.output.not_nil!}"
+					end
+				}
+				CommandHelper.pipe(o, a.output)
 			}
 		end
 	end
@@ -30,16 +53,7 @@ class PNaCL
 	property pnacl_arch
 	property sel_ldr
 
-	def initialize(settings_all)
-		if settings_all["pnacl"]?
-			settings = settings_all["pnacl"] as Hash
-
-			@pnacl_clang = settings["pnacl-clang"] as String
-			@pnacl_finalize = settings["pnacl-finalize"] as String
-			@pnacl_translate = settings["pnacl-translate"] as String
-			@pnacl_arch = settings["arch"] as String
-			@sel_ldr = settings["sel_ldr"] as String
-		end
+	def initialize(@pnacl_clang, @pnacl_finalize, @pnacl_translate, @pnacl_arch, @sel_ldr)
 	end
 
 	def pnacl_cc(source : String, mktemp : Bool, args=nil : Array(String)?)
@@ -53,38 +67,47 @@ class PNaCL
 		if mktemp
 			out = Tempfile.new "cry_pnacl_clang_out"
 			out.close
+			out.unlink
 			args_cmd << out.path
 		else
 			args_cmd << "-"
 		end
-		status = Process.run("#{@pnacl_clang}", args_cmd, true, source)
+		status = Process.run("#{@pnacl_clang}", args: args_cmd, output: true, input: source)
 		if mktemp
-			return [status, out]
+			return status.output, out
 		else
-			return [status, nil]
+			return status.output, nil
 		end
 	end
 
+	def pnacl_finalize(file : String)
+		`#{@pnacl_finalize} #{file}`
+	end
 	def pnacl_finalize(file : IO)
 		`#{@pnacl_finalize} #{file.path}`
 	end
 
-	def translate(input : IO, output : String)
-		`#{@pnacl_translate} #{file.path} -arch #{@pnacl_arch} -o #{output}`
+	def translate(input : String, output : String)
+		`#{@pnacl_translate} #{input} -arch #{@pnacl_arch} -o #{output}`
 	end
 	def translate(input : IO, output : IO)
-		`#{@pnacl_translate} #{file.path} -arch #{@pnacl_arch} -o #{output.path}`
+		`#{@pnacl_translate} #{input.path} -arch #{@pnacl_arch} -o #{output.path}`
 	end
 
 	def sel_ldr(file : IO)
 		`#{@sel_ldr} #{file.path}`
 	end
-	def sel_ldr(string : String)
-		tmp = Tempfile.open "cry_pnacl_sel_ldr" {|f|
-			f.write string
-		}
-		sel_ldr tmp
-		tmp.delete
+	def sel_ldr(string : String, ispath=true)
+		if ispath
+			`#{@sel_ldr} #{string}`
+		else
+			tmp = Tempfile.open "cry_pnacl_sel_ldr" {|f|
+				f.print string
+			}
+			output = sel_ldr tmp
+			tmp.delete
+			output
+		end
 	end
 
 	private def tmpname

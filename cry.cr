@@ -50,7 +50,7 @@ if ARGV[0]?
 		loaded = settings_modules["load"] as Array
 		loaded.each {|mod|
 			mod = mod as String
-			case mod
+			case mod.downcase
 			when "basic"
 				BasicCommands.new(parser)
 			when "permissions"
@@ -58,6 +58,7 @@ if ARGV[0]?
 			when "esolangs"
 				EsolangCommands.new(parser)
 			when "pnacl"
+				puts "loading pnacl"
 				PNaCLCommands.new(settings, parser)
 			end
 		}
