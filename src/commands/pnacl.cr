@@ -3,7 +3,7 @@
 # Make sure to set the pnacl settings to the correct values.
 require "tempfile"
 class PNaCLCommands
-	def initialize(settings_all, parser)
+	def initialize(settings_all, parser, perms)
 		if settings_all["pnacl"]?
 			settings = settings_all["pnacl"] as Hash
 
@@ -15,33 +15,38 @@ class PNaCLCommands
 
 			pnacl = PNaCL.new(@pnacl_clang, @pnacl_finalize, @pnacl_translate, @pnacl_arch, @sel_ldr)
 			parser.command "cc", "compile c code" {|a|
-				code = CommandHelper.readall(a.input)
-				return if code == ""
-				o = BufferedChannel(String).new
-				Thread.new {
-					args_cmd = ["-x", "c", "-"]
-					a.args.each {|arg|
-						args_cmd << arg
+				if perms.user_hasprivilege(a.nick, "pnacl")
+					code = CommandHelper.readall(a.input)
+					return if code == ""
+					o = BufferedChannel(String).new
+					Thread.new {
+						args_cmd = ["-x", "c", "-"]
+						a.args.each {|arg|
+							args_cmd << arg
+						}
+						args_cmd << "-o"
+						out_tmp = Tempfile.new "cry_pnacl"
+						out_tmp.close
+						args_cmd << out_tmp.path
+						status = Process.run("#{@pnacl_clang}", args: args_cmd, output: true, input: code)
+						if status.success?
+							nexepath = "#{out_tmp.path}.nexe"
+							pp out_tmp.path
+							pp nexepath
+							pnacl.pnacl_finalize(out_tmp.path)
+							pnacl.translate(out_tmp.path, nexepath)
+							File.delete(out_tmp.path)
+							o.send pnacl.sel_ldr(nexepath)
+							File.delete(nexepath)
+						else
+							o.send "Error: pnacl-clang errored:\n#{status.output.not_nil!}"
+						end
+						o.close
 					}
-					args_cmd << "-o"
-					out_tmp = Tempfile.new "cry_pnacl"
-					out_tmp.close
-					args_cmd << out_tmp.path
-					status = Process.run("#{@pnacl_clang}", args: args_cmd, output: true, input: code)
-					if status.success?
-						nexepath = "#{out_tmp.path}.nexe"
-						pp out_tmp.path
-						pp nexepath
-						pnacl.pnacl_finalize(out_tmp.path)
-						pnacl.translate(out_tmp.path, nexepath)
-						File.delete(out_tmp.path)
-						o.send pnacl.sel_ldr(nexepath)
-						File.delete(nexepath)
-					else
-						o.send "Error: pnacl-clang errored:\n#{status.output.not_nil!}"
-					end
-				}
-				CommandHelper.pipe(o, a.output)
+					CommandHelper.pipe(o, a.output)
+				else
+					a.output.send "Insufficient permissions. (pnacl)"
+				end
 			}
 		end
 	end

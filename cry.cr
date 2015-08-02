@@ -59,7 +59,7 @@ if ARGV[0]?
 				EsolangCommands.new(parser)
 			when "pnacl"
 				puts "loading pnacl"
-				PNaCLCommands.new(settings, parser)
+				PNaCLCommands.new(settings, parser, permissions)
 			end
 		}
 	end
