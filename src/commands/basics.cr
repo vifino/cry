@@ -59,5 +59,9 @@ class BasicCommands
 				a.output.send "Usage: tr SET1 [SET2]"
 			end
 		}
+        parser.command "rnd", "prints a random number between 0 and 100" {|a|
+			prng = Random.new
+			a.output.send prng.rand(101)
+		}
 	end
 end
