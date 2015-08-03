@@ -39,7 +39,7 @@ class PNaCLCommands
 							o.send pnacl.sel_ldr(nexepath)
 							File.delete(nexepath)
 						else
-							o.send "Error: pnacl-clang errored:\n#{status.output.not_nil!}"
+							o.send "Error: pnacl-clang errored:\n#{status.output}"
 						end
 						o.close
 					}
