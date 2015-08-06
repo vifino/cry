@@ -1,6 +1,9 @@
 # IRC stuff.
 require "socket"
 require "openssl"
+
+require "../output/*"
+
 class IRC
 	property nick
 	property username
@@ -9,19 +12,17 @@ class IRC
 
 	# Initialization methods and stuff.
 	def initialize(@server : String, @port : Int, @nick : String, @user : String, @realname="Cry" : String, @ssl=false : Bool, @pass=nil : Nil | String)
-		puts "Connecting..."
 		socket = TCPSocket.new @server, @port
 		socket = OpenSSL::SSL::Socket.new socket if @ssl
 		@socket = socket
 
-		puts "Done. Initializing.."
 		nick @nick
 		send "USER #{@user} ~ ~ :#{@realname}"
 		@socket.flush
 		while true
 			msg = receive()
 			if msg.is_a? String
-				puts "=> " + msg
+				Output.receivedline msg
 				break if msg.includes? ":End of /MOTD command."
 			end
 		end
@@ -37,9 +38,7 @@ class IRC
 		msg = @socket.read_line
 		if msg.is_a? String && !msg.empty?
 			if /^PING :(.*)$/.match msg
-				puts "=> " + msg
 				send "PONG #{$~[1]}"
-				return nil
 			end
 			return msg.delete("\r\n")
 		end
@@ -49,7 +48,6 @@ class IRC
 		while true
 			msg = receive()
 			if msg.is_a? String
-				puts "=> " + msg
 				yield msg
 			end
 		end
@@ -63,7 +61,7 @@ class IRC
 	def send msg=""
 		if msg != ""
 			@socket.puts(msg + "\r\n")
-			puts "<= " + msg
+			Output.sentline msg
 			@socket.flush
 		end
 	end

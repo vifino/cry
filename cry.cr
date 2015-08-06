@@ -4,6 +4,7 @@ require "concurrent"
 require "toml"
 
 require "./src/irc/irc.cr"
+require "./src/output/*"
 require "./src/parser/commandparser.cr"
 require "./src/permissions/permissions.cr"
 require "./src/commands/*"
@@ -72,6 +73,7 @@ if ARGV[0]?
 		#bot.msg c, "CRY ME A RIVER."
 	}
 	bot.run {|msg|
+		Output.receivedline msg
 		if /^:(.*?)!(.*?)@(.*?) PRIVMSG (.*?) :\$(.*)$/.match(msg)
 			spawn {
 				res = ""
