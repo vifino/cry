@@ -146,7 +146,9 @@ class CommandParser
 			als = @aliases[cmd]?
 			if fn.is_a? Proc
 				o = Arguments.new(nick, chan, args, input, output, callcount)
-				fn.call o
+				yieldwithch {
+					fn.call(o)
+				}
 				output.close if !output.closed?
 			elsif checkaliases && als.is_a? String
 				parsed = parse_args parse_backticks(nick, chan, als, callcount)
@@ -165,6 +167,10 @@ class CommandParser
 			output.close
 		end
 	end
+	private def yieldwithch &block : Arguments ->
+		with CommandHelper yield
+	end
+
 	def parse_backticks(nick, channel, string : String, callcount=0)
 		i = 0
 		len = string.length

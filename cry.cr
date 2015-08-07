@@ -59,8 +59,9 @@ if ARGV[0]?
 			when "esolangs"
 				EsolangCommands.new(parser)
 			when "pnacl"
-				puts "loading pnacl"
 				PNaCLCommands.new(settings, parser, permissions)
+			when "wolframalpha"
+				WolframCommands.new(settings, parser)
 			end
 		}
 	end
@@ -84,7 +85,7 @@ if ARGV[0]?
 				end
 				if res != ""
 					(res + "\n").split('\n').each {|l|
-						bot.msg $~[4], "@ #{l}"
+						bot.msg $~[4], "@ #{l}" if !l.strip.empty?
 					}
 				end
 			}
