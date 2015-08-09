@@ -10,6 +10,9 @@ class CommandHelper
 			end
 		end
 	end
+	def pipe(a : BufferedChannel(String), b : BufferedChannel(String))
+		self.pipe(a, b)
+	end
 
 	def self.pipe(a : BufferedChannel(String), b : BufferedChannel(String), &block : String -> String)
 		while true
@@ -22,6 +25,10 @@ class CommandHelper
 			end
 		end
 	end
+	def pipe(a : BufferedChannel(String), b : BufferedChannel(String), &block : String -> String)
+		self.pipe(a, b, &block)
+	end
+
 	def self.readall(a : BufferedChannel(String))
 		o = ""
 		while true
@@ -34,5 +41,8 @@ class CommandHelper
 			end
 		end
 		o
+	end
+	def readall(a : BufferedChannel(String))
+		self.readall(a)
 	end
 end

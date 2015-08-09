@@ -25,7 +25,7 @@ class WolframCommands
 					else
 						res = WolframAlpha.parse_xml(doc)
 						res.each {|k, v|
-								a.output.send "#{k}: #{v[0]}\n"
+							a.output.send "#{k}: #{v[0]}\n"
 						}
 					end
 				end

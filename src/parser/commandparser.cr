@@ -29,6 +29,7 @@ class CommandParser
 		@commands = Hash(String, (Arguments ->)).new
 		@helpdata = Hash(String, String).new
 		@aliases = Hash(String, String).new
+
 		command "man", "an interface to the command reference manuals" {|a|
 			name = a.args[0]?
 			if name.is_a? String
@@ -146,9 +147,7 @@ class CommandParser
 			als = @aliases[cmd]?
 			if fn.is_a? Proc
 				o = Arguments.new(nick, chan, args, input, output, callcount)
-				yieldwithch {
-					fn.call(o)
-				}
+				fn.call o
 				output.close if !output.closed?
 			elsif checkaliases && als.is_a? String
 				parsed = parse_args parse_backticks(nick, chan, als, callcount)
@@ -166,9 +165,6 @@ class CommandParser
 			output.send "Error: #{e.to_s}"
 			output.close
 		end
-	end
-	private def yieldwithch &block : Arguments ->
-		with CommandHelper yield
 	end
 
 	def parse_backticks(nick, channel, string : String, callcount=0)

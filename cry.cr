@@ -62,6 +62,8 @@ if ARGV[0]?
 				PNaCLCommands.new(settings, parser, permissions)
 			when "wolframalpha"
 				WolframCommands.new(settings, parser)
+			when "tape"
+				TapeCommands.new(parser)
 			end
 		}
 	end
