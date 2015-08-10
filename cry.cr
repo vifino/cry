@@ -53,7 +53,7 @@ if ARGV[0]?
 			mod = mod as String
 			case mod.downcase
 			when "basic"
-				BasicCommands.new(parser)
+				BasicCommands.new(parser, permissions)
 			when "permissions"
 				PermissionCommands.new(parser, permissions)
 			when "esolangs"

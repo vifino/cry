@@ -1,14 +1,14 @@
 # Basic commands, such as echo, cat or rot13.
 require "../parser/commandhelper.cr"
 class BasicCommands
-	def initialize(parser : CommandParser)
+	def initialize(parser : CommandParser, permissions)
 		parser.command "echo", "display a line of text" {|a|
 			str = ""
 			a.args.each {|s| str = str + s + " "}
 			a.output.send str.strip
 		}
 		parser.command "whoami", "print effective userid" {|a|
-			a.output.send a.nick
+			a.output.send permissions.get_username(a.nick)
 		}
 		parser.command "cat", "read a.input, write a.output" {|a|
 			CommandHelper.pipe(a.input, a.output)
@@ -62,9 +62,6 @@ class BasicCommands
 		parser.command "rnd", "prints a random number between 0 and 100" {|a|
 			prng = Random.new
 			a.output.send prng.rand(101).to_s
-		}
-		parser.command "dbg", "debug" {|a|
-			a.output.send a.raw
 		}
 	end
 end
