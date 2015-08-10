@@ -63,5 +63,8 @@ class BasicCommands
 			prng = Random.new
 			a.output.send prng.rand(101).to_s
 		}
+		parser.command "dbg", "debug" {|a|
+			a.output.send a.raw
+		}
 	end
 end

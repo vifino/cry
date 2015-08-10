@@ -21,7 +21,7 @@ class EsolangCommands
 				forthout = BufferedChannel(String).new
 				Thread.new {
 					forth = Forth.new(a.input, forthout)
-					forth.parse(a.args)
+					forth.parse(a.raw.gsub(/^#{a.cmd} /, ""))
 					forthout.close
 				}
 				CommandHelper.pipe(forthout, a.output)
@@ -148,7 +148,7 @@ class Forth
 		raise "Empty Word" if @word.size < 1
 		raise "Nested Definition" if @word.includes? ":"
 		name, expression = @word.shift, @word.join(" ")
-		@customwords[name.to_s] = parse_args(expression)
+		@customwords[name.to_s] = parse_raw(expression)
 		@word = [] of T
 	end
 
@@ -158,29 +158,29 @@ class Forth
 		@stack = [] of T
 		@dictionary = {
 			"+"     => binary { |a, b|
-					return a + b as Int32 if a.is_a? Int32 && a.is_a? Int32
-					return a + b as String if a.is_a? String && a.is_a? String
+					return a + b as Int32 if a.is_a? Int32 && b.is_a? Int32
+					return a + b as String if a.is_a? String && b.is_a? String
 					raise "Wrong types to +"
 				},
 			"-"     => binary { |a, b|
-					return a - b as Int32 if a.is_a? Int32 && a.is_a? Int32
+					return a - b as Int32 if a.is_a? Int32 && b.is_a? Int32
 					raise "Wrong types to -"
 				},
 			"*"     => binary { |a, b|
-					return a * b as Int32 if a.is_a? Int32 && a.is_a? Int32
-					return a * b as Int32 if a.is_a? String && a.is_a? Int32
+					return a * b as Int32 if a.is_a? Int32 && b.is_a? Int32
+					return a * b as Int32 if a.is_a? String && b.is_a? Int32
 					raise "Wrong types to *"
 				},
 			"/"     => binary { |a, b|
-					return (a / b as Int32) as Int32 if a.is_a? Int32 && a.is_a? Int32
+					return (a / b as Int32) as Int32 if a.is_a? Int32 && b.is_a? Int32
 					raise "Wrong types to /"
 				},
 			"%"     => binary { |a, b|
-					return a ^ b as Int32 if a.is_a? Int32 && a.is_a? Int32
+					return a ^ b as Int32 if a.is_a? Int32 && b.is_a? Int32
 					raise "Wrong types to %"
 				},
 			"xor"     => binary { |a, b|
-					return a ^ b as Int32 if a.is_a? Int32 && a.is_a? Int32
+					return a ^ b as Int32 if a.is_a? Int32 && b.is_a? Int32
 					raise "Wrong types to *"
 				},
 			"<"     => binary_boolean "<" { |a, b| a < b },
@@ -223,11 +223,13 @@ class Forth
 					@dictionary[statement].call
 				elsif @customwords.has_key? statement
 					parse(@customwords[statement])
+				elsif /^"(.*)"$/.match statement
+					push $~[1]
 				else
 					if isnumber(statement)
 						push statement.to_i
 					else
-						push statement
+						raise "No such word."
 					end
 				end
 			end
@@ -236,11 +238,15 @@ class Forth
 		end
 	end
 
+	def parse(code : String)
+		parse(parse_raw(code))
+	end
+
 	def isnumber(string)
 		return !!(string =~ /\A[-+]?[0-9]+\z/)
 	end
 
-	private def parse_args(string : String)
+	private def parse_raw(string : String)
 		i = 0
 		len = string.length
 		out = Array(String).new
@@ -252,12 +258,13 @@ class Forth
 			if ch == '"'
 				found, pos = after(string, i + 1, '"', true)
 				raise ArgumentError.new("Unmatched Quotes. (\")") if !found
-				out << string[i+1..pos-1].gsub(/\\(.)/) {|m| m[1]}
+				out << string[i..pos].gsub(/\\(.)/) {|m| m[1]}
 				i = pos + 1
 			elsif ch == '\''
 				found, pos = after(string, i + 1, '\'', true)
 				raise ArgumentError.new("Unmatched Quotes. (')") if !found
-				out << string[i+1..pos-1].gsub(/\\(.)/) {|m| m[1]}
+				s = string[i+1..pos-1].gsub(/\\(.)/) {|m| m[1]}
+				out << "\"#{s}\""
 				i = pos + 1
 			elsif ch == '|'
 				i = i + 1

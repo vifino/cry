@@ -73,4 +73,9 @@ class Permissions
 		}
 		return false
 	end
+
+	def get_username(nick : String)
+		# stub
+		nick
+	end
 end

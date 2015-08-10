@@ -20,7 +20,9 @@ class PermissionCommands
 				if permissions.user_hasprivilege(a.nick, "sudo")
 					cmd = command[0]?
 					if cmd.is_a? String
-						parser.call_cmd(user, a.chan, cmd, command[1..a.args.length], a.input, a.output, a.callcount)
+						args = command[1..a.args.length]
+						raw = CommandHelper.reassembleraw(cmd, args)
+						parser.call_cmd(user, a.chan, cmd, args, a.input, a.output, a.callcount, true, raw)
 					else
 						a.output.send "Usage: sudo user [command...]"
 					end

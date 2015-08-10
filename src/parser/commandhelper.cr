@@ -45,4 +45,19 @@ class CommandHelper
 	def readall(a : BufferedChannel(String))
 		self.readall(a)
 	end
+	def self.reassembleraw(cmd, args)
+		"#{cmd} #{self.reassemblerawargs(args)}"
+	end
+	def self.reassemblerawargs(args)
+		raw = ""
+		args.each {|s|
+			s = s as String
+			if s.includes? ' ' s.includes? '\\'
+				raw = raw + s.inspect + " "
+			else
+				raw = raw + s + " "
+			end
+		}
+		raw
+	end
 end

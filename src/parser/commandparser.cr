@@ -15,12 +15,14 @@ class CommandParser
 	struct Arguments
 		property nick
 		property chan
+		property cmd
 		property args
 		property input
 		property output
 		property callcount
+		property raw
 
-		def initialize(@nick, @chan, @args, @input, @output, @callcount)
+		def initialize(@nick, @chan, @cmd, @args, @input, @output, @callcount, @raw : String)
 		end
 	end
 
@@ -101,7 +103,7 @@ class CommandParser
 		if checkbackticks
 			string = parse_backticks(nick, channel, string, callcount)
 		end
-		cmds = parse_args(string)
+		cmds, raw = parse_args(string)
 
 		input = BufferedChannel(String).new
 		input.close
@@ -109,7 +111,7 @@ class CommandParser
 		cmds.each_with_index {|i, n|
 			cmd = n[0]
 			args = n[1..n.length]
-			input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases
+			input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases, raw[i]
 		}
 		out = ""
 		while true
@@ -122,35 +124,36 @@ class CommandParser
 		out
 	end
 	def parse(nick, channel, cmds : Hash(Int32, Array(String)), input, callcount=0, checkaliases=true)
-		input = BufferedChannel(String).new
-		input.close
 		output = BufferedChannel(String).new
 		cmds.each_with_index {|i, n|
 			cmd = n[0]
 			args = n[1..n.length]
-			input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases
+			raw = CommandHelper.reassembleraw(cmd, args)
+			input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases, raw
 		}
 		output
 	end
 
-	def spawn_call(nick, chan, cmd, args, input, output, callcount=0, checkaliases=true)
+	def spawn_call(nick, chan, cmd, args, input, output, callcount=0, checkaliases=true, raw="" : String)
 		spawn do
-			call_cmd nick, chan, cmd, args, input, output, callcount, checkaliases
+			call_cmd nick, chan, cmd, args, input, output, callcount, checkaliases, raw
 			return
 		end
 		input, output = output, BufferedChannel(String).new
 		return input, output
 	end
-	def call_cmd(nick, chan, cmd, args, input, output, callcount=0, checkaliases=true)
+	def call_cmd(nick, chan, cmd, args, input, output, callcount=0, checkaliases=true, raw="" : String)
 		begin
 			fn = @commands[cmd]?
 			als = @aliases[cmd]?
 			if fn.is_a? Proc
-				o = Arguments.new(nick, chan, args, input, output, callcount)
+				raw = raw as String
+				raw = CommandHelper.reassembleraw(cmd, args) if raw == ""
+				o = Arguments.new(nick, chan, cmd, args, input, output, callcount, raw)
 				fn.call o
 				output.close if !output.closed?
 			elsif checkaliases && als.is_a? String
-				parsed = parse_args parse_backticks(nick, chan, als, callcount)
+				parsed, raw = parse_args parse_backticks(nick, chan, als, callcount)
 				# add parsed and args together
 				cmds = parsed
 				cmds[cmds.length-1] = cmds[cmds.length-1].concat args
