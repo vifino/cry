@@ -2,13 +2,14 @@
 require "../parser/commandhelper.cr"
 class EsolangCommands
 	def initialize(parser : CommandParser)
+
 		parser.command "bf", "brainfuck interpreter" {|a|
 			if !a.args.empty?
 				insts = ""
 				a.args.each {|a| insts = insts + a}
 				bfout = BufferedChannel(String).new
 				Thread.new {
-					Brainfuck.parse(bfout, insts).run
+					Brainfuck.parse(bfout, insts, 1024).run
 					bfout.close
 				}
 				CommandHelper.pipe(bfout, a.output)
@@ -56,26 +57,35 @@ class Brainfuck # Mostly stolen from Crystal's examples.
 		end
 	end
 
-	def initialize(@output, @chars, @bracket_map); end
+	def initialize(@output, @chars, @bracket_map, @instlimit); end
 
 	def run
 		tape = Tape.new
 		pc = 0
-		while pc < @chars.length
-			case @chars[pc]
-				when '>'; tape.advance
-				when '<'; tape.devance
-				when '+'; tape.inc
-				when '-'; tape.dec
-				when '.'; @output.send tape.get.chr.to_s
-				when '['; pc = @bracket_map[pc] if tape.get == 0
-				when ']'; pc = @bracket_map[pc] if tape.get != 0
+		inst = 0
+		begin
+			while pc < @chars.length
+				inst += 1 if @instlimit != nil
+				if inst > @instlimit
+					raise "Instruction Limit reached. (#{@instlimit})"
+				end
+				case @chars[pc]
+					when '>'; tape.advance
+					when '<'; tape.devance
+					when '+'; tape.inc
+					when '-'; tape.dec
+					when '.'; @output.send tape.get.chr.to_s
+					when '['; pc = @bracket_map[pc] if tape.get == 0
+					when ']'; pc = @bracket_map[pc] if tape.get != 0
+				end
+				pc += 1
 			end
-			pc += 1
+		rescue e
+			@output.send "Error: #{e.to_s}"
 		end
 	end
 
-	def self.parse(output, text)
+	def self.parse(output, text, instlimit=nil)
 		parsed = [] of Char
 		bracket_map = {} of Int32 => Int32
 		leftstack = [] of Int32
@@ -96,7 +106,7 @@ class Brainfuck # Mostly stolen from Crystal's examples.
 			end
 		end
 		raise ArgumentError.new("Unmatched [") if !leftstack.empty?
-		Brainfuck.new(output, parsed, bracket_map)
+		Brainfuck.new(output, parsed, bracket_map, instlimit)
 	end
 end
 class Forth
