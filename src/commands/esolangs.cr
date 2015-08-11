@@ -1,18 +1,21 @@
 # Esolang implementations.
 require "../parser/commandhelper.cr"
 class EsolangCommands
-	def initialize(parser : CommandParser)
+	def initialize(parser : CommandParser, permissions)
 
 		parser.command "bf", "brainfuck interpreter" {|a|
 			if !a.args.empty?
 				insts = ""
 				a.args.each {|a| insts = insts + a}
-				bfout = BufferedChannel(String).new
+				bfdone = BufferedChannel(Bool).new
 				Thread.new {
-					Brainfuck.parse(bfout, insts, 1024).run
-					bfout.close
+					Brainfuck.parse(a.output, insts, 1024).run
+					bfdone.close
 				}
-				CommandHelper.pipe(bfout, a.output)
+				begin
+					bfdone.receive
+				rescue
+				end
 			else
 				a.output.send "Usage bf [brainfuck instructions]"
 			end
@@ -21,7 +24,7 @@ class EsolangCommands
 			if !a.args.empty?
 				forthout = BufferedChannel(String).new
 				Thread.new {
-					forth = Forth.new(a.input, forthout)
+					forth = Forth.new(a.input, forthout, a, permissions)
 					forth.parse(a.raw.gsub(/^#{a.cmd} /, ""))
 					forthout.close
 				}
@@ -113,7 +116,11 @@ class Forth
 	alias T = Int32 | String
 
 	def pop
-		@stack.pop || raise("Stack Underflow")
+		begin
+			@stack.pop
+		rescue
+			raise("Stack Underflow")
+		end
 	end
 	def push(expression : T)
 		@stack << expression
@@ -122,10 +129,14 @@ class Forth
 		-> { push(block.call pop) }
 	end
 	def binary(&block : (T, T)->(T))
-		-> { push(block.call pop, pop) }
+		-> { swap; push(block.call pop, pop) }
 	end
 	def unary_boolean(&block : (T)->(Bool))
-		-> { push(if block.call pop then 1 else 0 end) }
+		-> { push(if block.call pop
+				1
+			else
+				0
+			end) }
 	end
 	def binary_boolean(name="instruction", &block : (Int32, Int32)->(Bool | Int32))
 		-> {
@@ -151,7 +162,7 @@ class Forth
 		last1 = @stack[len-1]
 		last2 = @stack[len-2]
 		@stack[len-2] = last1
-		@stack[len-1] = last1
+		@stack[len-1] = last2
 	end
 
 	def new_word
@@ -160,13 +171,16 @@ class Forth
 		name, expression = @word.shift, @word.join(" ")
 		@customwords[name.to_s] = parse_raw(expression)
 		@word = [] of T
+		@def = false
 	end
 
-	def initialize(@input, @output)
+	def initialize(@input, @output, arguments, permissions)
+		@def = false
 		@skip = false
 		@word = [] of String
 		@stack = [] of T
 		@dictionary = {
+			# Operators
 			"+"     => binary { |a, b|
 					return a + b as Int32 if a.is_a? Int32 && b.is_a? Int32
 					return a + b as String if a.is_a? String && b.is_a? String
@@ -189,35 +203,49 @@ class Forth
 					return a ^ b as Int32 if a.is_a? Int32 && b.is_a? Int32
 					raise "Wrong types to %"
 				},
-			"xor"     => binary { |a, b|
+			"xor"   => binary { |a, b|
 					return a ^ b as Int32 if a.is_a? Int32 && b.is_a? Int32
 					raise "Wrong types to *"
 				},
 			"<"     => binary_boolean "<" { |a, b| a < b },
 			">"     => binary_boolean ">" { |a, b| a > b },
-			"="     => binary_boolean "=" { |a, b| a == b },
+			"="     => binary { |a, b| a == b ? 1 : 0 },
 			"&"     => binary_boolean "&" { |a, b| a && b },
 			"|"     => binary_boolean "|" { |a, b| a || b },
-			"not"   => binary_boolean "not" { |a, b| a == 0 },
-			"neg"   => binary { |a|
+			"dup"   => -> { begin push(@stack.last) rescue raise("Stack Underflow") end },
+			"over"  => -> { begin push(@stack[@stack.length-2]) rescue raise("Stack Underflow") end},
+			"swap"  => -> { begin swap rescue raise("Stack Underflow") end },
+			"not"   => unary_boolean { |a| a == 0 },
+			"neg"   => unary { |a|
 				if a.is_a? Int32
 					-a
 				else
 					raise "Wrong type to neg"
 				end
 				},
+			"concat"=> binary { |s1, s2|
+				s1.to_s + s2.to_s
+			},
+			# Output
 			"."     => -> { @output.send pop.to_s },
 			"emit"  => -> { @output.send pop.to_s },
 			".."    => -> { @output.send @stack.to_s },
-			":"     => -> { @word = [] of String },
-			";"     => -> { new_word },
+			# Logic
+			":"     => -> { @word = [] of String; @def = true },
 			"pop"   => -> { pop },
-			"fi"    => -> { @skip = false },
 			"words" => -> { @dictionary.keys.sort.each {|word| output.send word + " "} },
 			"if"    => -> { @skip = true if pop == 0 },
-			"dup"   => -> { push(@stack.last || raise("Stack Underflow")) },
-			"over"  => -> { push(@stack[@stack.length-2] || raise("Stack Underflow")) },
-			"swap"  => -> { begin swap rescue raise("Stack Underflow") end }
+			"else"  => -> { @skip = !@skip },
+			"fi"    => -> { @skip = false },
+			"nick"  => -> { push arguments.nick },
+			"chan"  => -> { push arguments.chan },
+			"hasgrp"=> binary { |user, group|
+				if user.is_a? String && group.is_a? String
+					return permissions.user_hasgroup(user, group) ? 1 : 0
+				else
+					raise "Wrong types for hasgrp"
+				end
+			}
 		}
 		@customwords = Hash(String, Array(String)).new
 	end
@@ -225,10 +253,12 @@ class Forth
 	def parse(expression : Array(String))
 		begin
 			expression.each do |statement|
-				if @skip == true && statement == "fi"
+				if @skip == true && statement != "fi"
 					next
-				elsif @word.empty? && statement == ";"
+				elsif @def && statement != ";"
 					@word << statement
+				elsif @def && statement == ";"
+					new_word
 				elsif @dictionary.has_key? statement
 					@dictionary[statement].call
 				elsif @customwords.has_key? statement
@@ -239,7 +269,7 @@ class Forth
 					if isnumber(statement)
 						push statement.to_i
 					else
-						raise "No such word."
+						raise "No such word: #{statement}"
 					end
 				end
 			end

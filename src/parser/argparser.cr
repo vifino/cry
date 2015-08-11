@@ -18,11 +18,19 @@ class CommandParser
 				if ch == '"'
 					found, pos = after(string, i + 1, '"', true)
 					raise ArgumentError.new("Unmatched Quotes. (\")") if !found
+					if current != ""
+						output[c] << current
+						current = ""
+					end
 					output[c] << string[i+1..pos-1].gsub(/\\(.)/) {|m| m[1]}
 					i = pos + 1
 				elsif ch == '\''
 					found, pos = after(string, i + 1, '\'', true)
 					raise ArgumentError.new("Unmatched Quotes. (')") if !found
+					if current != ""
+						output[c] << current
+						current = ""
+					end
 					output[c] << string[i+1..pos-1]
 					i = pos + 1
 				elsif ch == '|'

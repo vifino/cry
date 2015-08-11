@@ -99,12 +99,12 @@ class PNaCL
 		`#{@pnacl_translate} #{input.path} -arch #{@pnacl_arch} -o #{output.path}`
 	end
 
-	def sel_ldr(file : IO)
-		`#{@sel_ldr} #{file.path}`
+	def sel_ldr(file : IO, timeout=2)
+		sel_ldr file.path, timeout
 	end
-	def sel_ldr(string : String, ispath=true)
+	def sel_ldr(string : String, timeout=2, ispath=true)
 		if ispath
-			`#{@sel_ldr} #{string}`
+			`timeout #{timeout} #{@sel_ldr} #{string} || echo "Error: Timed out."`
 		else
 			tmp = Tempfile.open "cry_pnacl_sel_ldr" {|f|
 				f.print string

@@ -31,6 +31,7 @@ class CommandParser
 		@commands = Hash(String, (Arguments ->)).new
 		@helpdata = Hash(String, String).new
 		@aliases = Hash(String, String).new
+		@aliases_immutability = Hash(String, Bool).new
 
 		command "man", "an interface to the command reference manuals" {|a|
 			name = a.args[0]?
@@ -58,13 +59,24 @@ class CommandParser
 					end
 				elsif snippet.is_a? String # Set alias
 					if snippet == ""
-						del_alias! als_name
-						a.output.send "Cleared alias #{als_name}"
+						pp @aliases_immutability
+						pp @aliases_immutability[als_name]?
+						if @aliases_immutability[als_name]?
+							a.output.send "Alias is immutable, can't modify."
+						else
+							del_alias! als_name
+							a.output.send "Cleared alias #{als_name}"
+						end
 					else
 						begin
-							cmd = parse_args(snippet)
-							set_alias als_name,snippet
-							a.output.send "Set alias #{als_name}"
+							if @aliases_immutability[als_name]?
+								a.output.send "Alias is immutable, can't modify."
+							else
+								cmd, raw = parse_args(snippet)
+								set_alias als_name, snippet
+								a.output.send "Set alias #{als_name}"
+								@aliases_immutability[als_name] = false
+							end
 						rescue e : ArgumentError
 							a.output.send "Error: #{e.to_s}"
 						end
@@ -81,15 +93,17 @@ class CommandParser
 		@commands[name] = block
 		@helpdata[name] = help.gsub(/\$NAME\$/, name)
 	end
-	def set_alias(name, snippet)
+	def set_alias(name, snippet, immutable=false)
 		parse_args(snippet)
 		@aliases[name] = snippet
+		@aliases_immutability[name] = immutable
 	end
 	def get_alias(name)
 		@aliases[name]?
 	end
 	def del_alias!(name)
 		@aliases.delete name
+		@aliases_immutability.delete name
 	end
 
 	def parse(nick, channel, string, callcount=0 : Int, checkaliases=true, checkbackticks=true)
@@ -123,13 +137,17 @@ class CommandParser
 		end
 		out
 	end
-	def parse(nick, channel, cmds : Hash(Int32, Array(String)), input, callcount=0, checkaliases=true)
+	def parse(nick, channel, cmds : Hash(Int32, Array(String)), input, callcount=0, checkaliases=true, rawarray=nil)
 		output = BufferedChannel(String).new
 		cmds.each_with_index {|i, n|
 			cmd = n[0]
 			args = n[1..n.length]
-			raw = CommandHelper.reassembleraw(cmd, args)
-			input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases, raw
+			if rawarray.is_a? Nil
+				raw = CommandHelper.reassembleraw(cmd, args)
+				input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases, raw
+			else
+				input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases, rawarray[i]
+			end
 		}
 		output
 	end
@@ -157,7 +175,7 @@ class CommandParser
 				# add parsed and args together
 				cmds = parsed
 				cmds[cmds.length-1] = cmds[cmds.length-1].concat args
-				output_cmd = parse(nick, chan, cmds, input, callcount, true)
+				output_cmd = parse(nick, chan, cmds, input, callcount, checkaliases, raw)
 				CommandHelper.pipe output_cmd, output
 				output.close
 			else

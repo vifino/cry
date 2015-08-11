@@ -43,7 +43,7 @@ if ARGV[0]?
 		settings_aliases = settings["aliases"] as Hash
 		settings_aliases.each_with_index {|als, content|
 			content = content as String
-			parser.set_alias als, content
+			parser.set_alias als, content, true
 		}
 	end
 	if settings["modules"]?
@@ -57,7 +57,7 @@ if ARGV[0]?
 			when "permissions"
 				PermissionCommands.new(parser, permissions)
 			when "esolangs"
-				EsolangCommands.new(parser)
+				EsolangCommands.new(parser, permissions)
 			when "pnacl"
 				PNaCLCommands.new(settings, parser, permissions)
 			when "wolframalpha"
