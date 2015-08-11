@@ -78,17 +78,29 @@ if ARGV[0]?
 	bot.run {|msg|
 		Output.receivedline msg
 		if /^:(.*?)!(.*?)@(.*?) PRIVMSG (.*?) :\$(.*)$/.match(msg)
+			nick = $~[1]
+			chan = $~[4]
+			line = $~[5]
 			spawn {
 				res = ""
 				begin
-					res = parser.parse($~[1], $~[4], $~[5]).to_s
+					if /^#(.*)$/.match chan # Channel
+						res = parser.parse(nick, chan, line).to_s
+						if !res.empty?
+							(res + "\n").split('\n').each {|l|
+								bot.msg chan, "@ #{l}" if !l.strip.empty?
+							}
+						end
+					else # PM
+						res = parser.parse(nick, nick, line).to_s
+						if !res.empty?
+							(res + "\n").split('\n').each {|l|
+								bot.msg nick, "@ #{l}" if !l.strip.empty?
+							}
+						end
+					end
 				rescue e
 					res = "Error: #{e.to_s}"
-				end
-				if res != ""
-					(res + "\n").split('\n').each {|l|
-						bot.msg $~[4], "@ #{l}" if !l.strip.empty?
-					}
 				end
 			}
 		end
