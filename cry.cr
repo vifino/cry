@@ -64,6 +64,8 @@ if ARGV[0]?
 				WolframCommands.new(settings, parser)
 			when "tape"
 				TapeCommands.new(parser)
+			when "mathomatic"
+				MathomaticCommands.new(parser)
 			end
 		}
 	end

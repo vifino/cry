@@ -46,15 +46,9 @@ class BasicCommands
 			if a.args[0]? != nil
 				set1 = a.args[0]
 				set2 = a.args[1]? || ""
-				while true
-					if a.input.closed?
-						break
-					end
-					inp = a.input.receive?
-					if inp.is_a? String
-						a.output.send inp.tr(set1, set2)
-					end
-				end
+				CommandHelper.pipe(a.input, a.output) {|s|
+					s.tr(set1.not_nil!, set2.not_nil!)
+				}
 			else
 				a.output.send "Usage: tr SET1 [SET2]"
 			end

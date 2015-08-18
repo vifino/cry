@@ -52,7 +52,7 @@ class CommandHelper
 		raw = ""
 		args.each {|s|
 			s = s as String
-			if s.includes? ' ' s.includes? '\\'
+			if (s.includes? ' ') || (s.includes? '\\')
 				raw = raw + s.inspect + " "
 			else
 				raw = raw + s + " "
