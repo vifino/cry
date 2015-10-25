@@ -7,7 +7,7 @@ class EsolangCommands
 			if !a.args.empty?
 				insts = ""
 				a.args.each {|a| insts = insts + a}
-				bfdone = BufferedChannel(Bool).new
+				bfdone = Channel::Buffered(Bool).new
 				Thread.new {
 					Brainfuck.parse(a.output, insts, 1024).run
 					bfdone.close
@@ -22,7 +22,7 @@ class EsolangCommands
 		}
 		parser.command "forth", "forth interpreter" {|a|
 			if !a.args.empty?
-				forthout = BufferedChannel(String).new
+				forthout = Channel::Buffered(String).new
 				Thread.new {
 					forth = Forth.new(a.input, forthout, a, permissions)
 					forth.parse(a.raw.gsub(/^#{a.cmd} /, ""))
@@ -67,7 +67,7 @@ class Brainfuck # Mostly stolen from Crystal's examples.
 		pc = 0
 		inst = 0
 		begin
-			while pc < @chars.length
+			while pc < @chars.size
 				inst += 1 if @instlimit != nil
 				if inst > @instlimit
 					raise "Instruction Limit reached. (#{@instlimit})"
@@ -114,6 +114,7 @@ class Brainfuck # Mostly stolen from Crystal's examples.
 end
 class Forth
 	alias T = Int32 | String
+	alias Word = ->
 
 	def pop
 		begin
@@ -158,7 +159,7 @@ class Forth
 		}
 	end
 	def swap
-		len = @stack.length
+		len = @stack.size
 		last1 = @stack[len-1]
 		last2 = @stack[len-2]
 		@stack[len-2] = last1
@@ -179,6 +180,7 @@ class Forth
 		@skip = false
 		@word = [] of String
 		@stack = [] of T
+		@dictionary = Hash(String, Word).new
 		@dictionary = {
 			# Operators
 			"+"     => binary { |a, b|
@@ -213,7 +215,7 @@ class Forth
 			"&"     => binary_boolean "&" { |a, b| a && b },
 			"|"     => binary_boolean "|" { |a, b| a || b },
 			"dup"   => -> { begin push(@stack.last) rescue raise("Stack Underflow") end },
-			"over"  => -> { begin push(@stack[@stack.length-2]) rescue raise("Stack Underflow") end},
+			"over"  => -> { begin push(@stack[@stack.size-2]) rescue raise("Stack Underflow") end},
 			"swap"  => -> { begin swap rescue raise("Stack Underflow") end },
 			"not"   => unary_boolean { |a| a == 0 },
 			"neg"   => unary { |a|
@@ -288,7 +290,7 @@ class Forth
 
 	private def parse_raw(string : String)
 		i = 0
-		len = string.length
+		len = string.size
 		out = Array(String).new
 		current = ""
 		while i < len
@@ -334,7 +336,7 @@ class Forth
 	private def after(string, pos, char, checkescapes=false)
 		i = pos
 		if checkescapes
-			while i < string.length
+			while i < string.size
 				if string[i] == char && string[i-1]? != '\\'
 					return true, i
 				else
@@ -342,7 +344,7 @@ class Forth
 				end
 			end
 		else
-			while i < string.length
+			while i < string.size
 				return true, i if string[i] == char
 				i = i + 1
 			end

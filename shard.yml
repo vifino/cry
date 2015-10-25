@@ -1,0 +1,9 @@
+name: cry
+version: 0.0.1
+
+dependencies:
+  toml:
+    github: manastech/crystal-toml
+    branch: master
+
+license: MIT

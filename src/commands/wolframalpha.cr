@@ -1,5 +1,5 @@
 # Wolfram Alpha
-require "cgi"
+require "uri"
 require "xml"
 require "http"
 
@@ -41,9 +41,9 @@ class WolframAlpha
 	def initialize @appid : String
 	end
 	def query(string)
-		res = HTTP::Client.exec("GET", "https://api.wolframalpha.com/"+ @version + "/query?format=plaintext&input=" + CGI.escape(string) + "&appid=" + @appid)
+		res = HTTP::Client.exec("GET", "https://api.wolframalpha.com/"+ @version + "/query?format=plaintext&input=" + URI.escape(string) + "&appid=" + @appid)
 		body = res.body.gsub(/\\:([0-9a-z][0-9a-z][0-9a-z][0-9a-z])/) {|s| "&#x"+ s[1] +";"}
-		return XML.parse(CGI.unescape(body)) # I could have cleaned up that a bit... Oh well.
+		return XML.parse(URI.unescape(body)) # I could have cleaned up that a bit... Oh well.
 	end
 
 	def self.parse_xml(doc)

@@ -16,11 +16,11 @@ class PermissionCommands
 		parser.command "sudo", "execute a command as another user" {|a|
 			if a.args[0]? != nil
 				user = a.args[0]
-				command = a.args[1..a.args.length]
+				command = a.args[1..a.args.size]
 				if permissions.user_hasprivilege(a.nick, "sudo")
 					cmd = command[0]?
 					if cmd.is_a? String
-						args = command[1..a.args.length]
+						args = command[1..a.args.size]
 						raw = CommandHelper.reassembleraw(cmd, args)
 						parser.call_cmd(user, a.chan, cmd, args, a.input, a.output, a.callcount, true, raw)
 					else

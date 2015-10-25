@@ -22,7 +22,7 @@ class TapeCommands
 				when "wipe"
 					@tapes[a.nick].wipe
 					a.output.send "Wiped Tape."
-				when "usage"
+				when "used"
 					a.output.send "#{@tapes[a.nick].usage}"
 				when "size"
 					a.output.send "#{@tapes[a.nick].size}"
@@ -41,13 +41,13 @@ class Tape
 		@tape = ""
 	end
 	def usage
-		@tape.length || 0
+		@tape.size || 0
 	end
 	def read(start=0, end=@size)
 		@tape[start..end] || ""
 	end
 	def write(string, startpos=0)
-		#@tape[startpos..string.length] = string[0..@size-startpos]
+		#@tape[startpos..string.size] = string[0..@size-startpos]
 		pos = 0
 		tmp = ""
 		while pos < @size

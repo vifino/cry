@@ -18,7 +18,7 @@ class PNaCLCommands
 				if perms.user_hasprivilege(a.nick, "pnacl")
 					code = CommandHelper.readall(a.input)
 					return if code == ""
-					o = BufferedChannel(String).new
+					o = Channel::Buffered(String).new
 					Thread.new {
 						args_cmd = ["-x", "c", "-"]
 						a.args.each {|arg|

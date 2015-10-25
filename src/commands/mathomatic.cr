@@ -6,9 +6,11 @@ class MathomaticCommands
 			if a.args[0]? != nil
 				str = ""
 				a.args.each {|s| str = str + s.tr(";", "\n") + " "}
-				status = Process.run("mathomatic", args: ["-qcs", "4:10", "-e", str.strip], output: true)
+				process = Process.new("mathomatic", ["-qcs", "4:10", "-e", str.strip], shell: false, input: true, output: true, error: true)
+				output = process.output.gets_to_end
+				status = process.wait
+
 				if status.success?
-					output = status.output.not_nil!
 					res = ""
 					output.split("\n").each_with_index {|line, index|
 						next if index == 0

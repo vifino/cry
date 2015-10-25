@@ -27,7 +27,7 @@ class CommandParser
 	end
 
 	def initialize
-		#@commands = Hash(String, (String, String, Array(String), BufferedChannel(String), BufferedChannel(String) ->)).new
+		#@commands = Hash(String, (String, String, Array(String), Channel::Buffered(String), Channel::Buffered(String) ->)).new
 		@commands = Hash(String, (Arguments ->)).new
 		@helpdata = Hash(String, String).new
 		@aliases = Hash(String, String).new
@@ -119,12 +119,12 @@ class CommandParser
 		end
 		cmds, raw = parse_args(string)
 
-		input = BufferedChannel(String).new
+		input = Channel::Buffered(String).new
 		input.close
-		output = BufferedChannel(String).new
+		output = Channel::Buffered(String).new
 		cmds.each_with_index {|i, n|
 			cmd = n[0]
-			args = n[1..n.length]
+			args = n[1..n.size]
 			input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases, raw[i]
 		}
 		out = ""
@@ -138,10 +138,10 @@ class CommandParser
 		out
 	end
 	def parse(nick, channel, cmds : Hash(Int32, Array(String)), input, callcount=0, checkaliases=true, rawarray=nil)
-		output = BufferedChannel(String).new
+		output = Channel::Buffered(String).new
 		cmds.each_with_index {|i, n|
 			cmd = n[0]
-			args = n[1..n.length]
+			args = n[1..n.size]
 			if rawarray.is_a? Nil
 				raw = CommandHelper.reassembleraw(cmd, args)
 				input, output = spawn_call nick, channel, cmd, args, input, output, callcount, checkaliases, raw
@@ -157,7 +157,7 @@ class CommandParser
 			call_cmd nick, chan, cmd, args, input, output, callcount, checkaliases, raw
 			return
 		end
-		input, output = output, BufferedChannel(String).new
+		input, output = output, Channel::Buffered(String).new
 		return input, output
 	end
 	def call_cmd(nick, chan, cmd, args, input, output, callcount=0, checkaliases=true, raw="" : String)
@@ -174,7 +174,7 @@ class CommandParser
 				parsed, raw = parse_args parse_backticks(nick, chan, als, callcount)
 				# add parsed and args together
 				cmds = parsed
-				cmds[cmds.length-1] = cmds[cmds.length-1].concat args
+				cmds[cmds.size-1] = cmds[cmds.size-1].concat args
 				output_cmd = parse(nick, chan, cmds, input, callcount, checkaliases, raw)
 				CommandHelper.pipe output_cmd, output
 				output.close
@@ -190,7 +190,7 @@ class CommandParser
 
 	def parse_backticks(nick, channel, string : String, callcount=0)
 		i = 0
-		len = string.length
+		len = string.size
 		current = ""
 		out = [] of String
 		#isquote = false

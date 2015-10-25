@@ -5,4 +5,6 @@ libs
 .deps.lock
 *.swp
 *.un~
-config.toml
+/config.toml
+/shard.lock
+/.shards

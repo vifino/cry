@@ -4,7 +4,7 @@ class CommandParser
 	def parse_args(string : String)
 		c = 0
 		i = 0
-		len = string.length
+		len = string.size
 		output = Hash(Int32, Array(String)).new
 		rawlines = Array(String).new
 		lastpipe=0
@@ -70,7 +70,7 @@ class CommandParser
 	private def after(string, pos, char, checkescapes=false)
 		i = pos
 		if checkescapes
-			while i < string.length
+			while i < string.size
 				if string[i] == char && string[i-1]? != '\\'
 					return true, i
 				else
@@ -78,7 +78,7 @@ class CommandParser
 				end
 			end
 		else
-			while i < string.length
+			while i < string.size
 				return true, i if string[i] == char
 				i = i + 1
 			end

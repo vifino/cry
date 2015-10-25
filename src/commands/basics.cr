@@ -31,11 +31,11 @@ class BasicCommands
 		}
 		parser.command "time", "time a simple command" {|a|
 			if a.args[0]? != nil
-				command = a.args[0..a.args.length]
+				command = a.args[0..a.args.size]
 				cmd = command[0]?
 				start = Time.now
-				outp = BufferedChannel(String).new
-				parser.call_cmd(a.nick, a.chan, cmd, command[1..command.length], a.input, outp, a.callcount)
+				outp = Channel::Buffered(String).new
+				parser.call_cmd(a.nick, a.chan, cmd, command[1..command.size], a.input, outp, a.callcount)
 				CommandHelper.pipe(outp, a.output)
 				a.output.send "\nTook: #{Time.new - start}"
 			else

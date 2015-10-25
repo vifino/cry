@@ -68,14 +68,14 @@ class IRC
 	def msg chan : String, msg : String
 		msg.each_line {|line|
 			if line != ""
-				length = 512-("PRIVMSG #{chan} :").length
+				length = 512-("PRIVMSG #{chan} :").size
 				send "PRIVMSG #{chan} :" + line
 			end
 		}
 	end
 	def notice chan : String, msg : String
 		msg.each_line {|line|
-			length = 512-("PRIVMSG #{chan} :").length
+			length = 512-("PRIVMSG #{chan} :").size
 			send "PRIVMSG #{chan} :" + line
 		}
 	end

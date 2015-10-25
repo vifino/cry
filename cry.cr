@@ -58,8 +58,8 @@ if ARGV[0]?
 				PermissionCommands.new(parser, permissions)
 			when "esolangs"
 				EsolangCommands.new(parser, permissions)
-			when "pnacl"
-				PNaCLCommands.new(settings, parser, permissions)
+			#when "pnacl"
+			#	PNaCLCommands.new(settings, parser, permissions)
 			when "wolframalpha"
 				WolframCommands.new(settings, parser)
 			when "tape"

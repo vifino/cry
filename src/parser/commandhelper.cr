@@ -1,5 +1,5 @@
 class CommandHelper
-	def self.pipe(a : BufferedChannel(String), b : BufferedChannel(String))
+	def self.pipe(a : Channel::Buffered(String), b : Channel::Buffered(String))
 		while true
 			break if b.closed?
 			tmp = a.receive?
@@ -10,11 +10,11 @@ class CommandHelper
 			end
 		end
 	end
-	def pipe(a : BufferedChannel(String), b : BufferedChannel(String))
+	def pipe(a : Channel::Buffered(String), b : Channel::Buffered(String))
 		self.pipe(a, b)
 	end
 
-	def self.pipe(a : BufferedChannel(String), b : BufferedChannel(String), &block : String -> String)
+	def self.pipe(a : Channel::Buffered(String), b : Channel::Buffered(String), &block : String -> String)
 		while true
 			break if b.closed?
 			tmp = a.receive?
@@ -25,11 +25,11 @@ class CommandHelper
 			end
 		end
 	end
-	def pipe(a : BufferedChannel(String), b : BufferedChannel(String), &block : String -> String)
+	def pipe(a : Channel::Buffered(String), b : Channel::Buffered(String), &block : String -> String)
 		self.pipe(a, b, &block)
 	end
 
-	def self.readall(a : BufferedChannel(String))
+	def self.readall(a : Channel::Buffered(String))
 		o = ""
 		while true
 			break if a.closed?
@@ -42,7 +42,7 @@ class CommandHelper
 		end
 		o
 	end
-	def readall(a : BufferedChannel(String))
+	def readall(a : Channel::Buffered(String))
 		self.readall(a)
 	end
 	def self.reassembleraw(cmd, args)
