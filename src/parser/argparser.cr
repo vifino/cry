@@ -22,7 +22,16 @@ class CommandParser
 						output[c] << current
 						current = ""
 					end
-					output[c] << string[i+1..pos-1].gsub(/\\(.)/) {|m| m[1]}
+					output[c] << string[i+1..pos-1].gsub(/\\(.)/) {|m|
+						case m[1]
+						when 'n'
+							"\n"
+						when 'r'
+							"\r"
+						else
+							m[1]
+						end
+					}
 					i = pos + 1
 				elsif ch == '\''
 					found, pos = after(string, i + 1, '\'', true)
@@ -44,7 +53,14 @@ class CommandParser
 					break
 				elsif ch == '\\'
 					if nxt.is_a? Char
-						current = current + nxt
+						case nxt
+						when 'n'
+							current = current + '\n'
+						when 'r'
+							current = current + '\r'
+						else
+							current = current + nxt
+						end
 						i = i + 2
 					else
 						raise ArgumentError.new("Unmatched Escapes. (\\)")
@@ -65,6 +81,10 @@ class CommandParser
 		end
 		rawlines << string[lastpipe..i].strip if string[lastpipe..i]!=""
 		return output, rawlines
+	end
+
+	def self.parse_args(string : String)
+		parse_args(string)
 	end
 
 	private def after(string, pos, char, checkescapes=false)

@@ -4,9 +4,16 @@ class MathomaticCommands
 	def initialize(parser : CommandParser)
 		parser.command "solve", "calculate/solve an expression" {|a|
 			if a.args[0]? != nil
+				args = ["-qcs", "4:10"]
 				str = ""
-				a.args.each {|s| str = str + s.tr(";", "\n") + " "}
-				process = Process.new("mathomatic", ["-qcs", "4:10", "-e", str.strip], shell: false, input: true, output: true, error: true)
+				a.args.each {|s|
+					str = str + s.tr(";", "\n") + " "
+				}
+				str.split("\n").each {|s|
+					args.push "-e"
+					args.push s.strip
+				}
+				process = Process.new("mathomatic", args, shell: false, input: true, output: nil, error: true)
 				output = process.output.gets_to_end
 				status = process.wait
 
@@ -15,7 +22,7 @@ class MathomaticCommands
 					output.split("\n").each_with_index {|line, index|
 						next if index == 0
 						next if line == ""
-						res = res + line.strip + "\n" if !line.strip.empty?
+						res = res + line + "\n" if !line.strip.empty?
 					}
 					a.output.send res
 				else
@@ -25,5 +32,6 @@ class MathomaticCommands
 				a.output.send "Usage: solve [expr]"
 			end
 		}
+		parser.command "calc", "calculate/solve an expression", "solve"
 	end
 end

@@ -10,7 +10,7 @@ class BasicCommands
 		parser.command "whoami", "print effective userid" {|a|
 			a.output.send permissions.get_username(a.nick)
 		}
-		parser.command "cat", "read a.input, write a.output" {|a|
+		parser.command "cat", "read input, write output" {|a|
 			CommandHelper.pipe(a.input, a.output)
 		}
 		parser.command "rot13", "decrypt caesar ciphers" {|a|
@@ -55,7 +55,7 @@ class BasicCommands
 		}
 		parser.command "rnd", "prints a random number between 0 and 100" {|a|
 			prng = Random.new
-			a.output.send prng.rand(101).to_s
+			a.output.send prng.rand(100).to_s
 		}
 	end
 end

@@ -93,6 +93,10 @@ class CommandParser
 		@commands[name] = block
 		@helpdata[name] = help.gsub(/\$NAME\$/, name)
 	end
+	def command(name : String, help=@noman : String, text="" : String)
+		set_alias(name, text, true)
+		@helpdata[name] = help.gsub(/\$NAME\$/, name)
+	end
 	def set_alias(name, snippet, immutable=false)
 		parse_args(snippet)
 		@aliases[name] = snippet
@@ -153,10 +157,9 @@ class CommandParser
 	end
 
 	def spawn_call(nick, chan, cmd, args, input, output, callcount=0, checkaliases=true, raw="" : String)
-		spawn do
+		spawn {
 			call_cmd nick, chan, cmd, args, input, output, callcount, checkaliases, raw
-			return
-		end
+		}
 		input, output = output, Channel::Buffered(String).new
 		return input, output
 	end

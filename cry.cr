@@ -56,6 +56,8 @@ if ARGV[0]?
 				BasicCommands.new(parser, permissions)
 			when "permissions"
 				PermissionCommands.new(parser, permissions)
+			when "forth"
+				ForthCommands.new(parser, permissions)
 			when "esolangs"
 				EsolangCommands.new(parser, permissions)
 			#when "pnacl"
@@ -89,15 +91,37 @@ if ARGV[0]?
 					if /^#(.*)$/.match chan # Channel
 						res = parser.parse(nick, chan, line).to_s
 						if !res.empty?
-							(res + "\n").split('\n').each {|l|
-								bot.msg chan, "@ #{l}" if !l.strip.empty?
+							ary = (res + "\n").split('\n')
+							cleanary = Array(String).new
+							ary.each {|l|
+								cleanary << l if !l.strip.empty?
+							}
+							cleanary.each_with_index {|l, i|
+								if i == 0
+									bot.msg chan, "@ #{l}"
+								elsif i == (cleanary.size - 1)
+									bot.msg chan, "\\ #{l}"
+								else
+									bot.msg chan, "| #{l}"
+								end
 							}
 						end
 					else # PM
 						res = parser.parse(nick, nick, line).to_s
 						if !res.empty?
-							(res + "\n").split('\n').each {|l|
-								bot.msg nick, "@ #{l}" if !l.strip.empty?
+							ary = (res + "\n").split('\n')
+							cleanary = Array(String).new
+							ary.each {|l|
+								cleanary << l if !l.strip.empty?
+							}
+							cleanary.each_with_index {|l, i|
+								if i == 0
+									bot.msg nick, "@ #{l}"
+								elsif i == (cleanary.size - 1)
+									bot.msg nick, "\\ #{l}"
+								else
+									bot.msg nick, "| #{l}"
+								end
 							}
 						end
 					end
