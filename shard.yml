@@ -8,4 +8,8 @@ dependencies:
   duktape:
     github: jessedoyle/duktape.cr
     version: ~> 0.6.1
+  emoji:
+    github: veelenga/emoji.cr
+    branch: master
+
 license: MIT

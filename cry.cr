@@ -70,6 +70,8 @@ if ARGV[0]?
 				TapeCommands.new(parser)
 			when "mathomatic"
 				MathomaticCommands.new(parser)
+			when "emoji"
+				EmojiCommands.new(parser)
 			end
 		}
 	end
