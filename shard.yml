@@ -5,5 +5,7 @@ dependencies:
   toml:
     github: manastech/crystal-toml
     branch: master
-
+  duktape:
+    github: jessedoyle/duktape.cr
+    version: ~> 0.6.1
 license: MIT

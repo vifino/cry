@@ -58,6 +58,8 @@ if ARGV[0]?
 				PermissionCommands.new(parser, permissions)
 			when "forth"
 				ForthCommands.new(parser, permissions)
+			when "duktape"
+				DuktapeCommands.new(parser)
 			when "esolangs"
 				EsolangCommands.new(parser, permissions)
 			#when "pnacl"

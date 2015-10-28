@@ -2,7 +2,6 @@
 require "../parser/commandhelper.cr"
 class EsolangCommands
 	def initialize(parser : CommandParser, permissions)
-
 		parser.command "bf", "brainfuck interpreter" {|a|
 			if !a.args.empty?
 				insts = ""
