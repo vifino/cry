@@ -33,7 +33,7 @@ class DuktapeCommands
 	end
 end
 class DuktapeWrapper
-	def initialize(timeout = 1000)
+	def initialize(timeout = 500)
 		@sbx :: Duktape::Sandbox
 		reset timeout
 	end

@@ -72,6 +72,8 @@ if ARGV[0]?
 				MathomaticCommands.new(parser)
 			when "emoji"
 				EmojiCommands.new(parser)
+			when "meme"
+				MemeCommands.new(parser)
 			end
 		}
 	end
