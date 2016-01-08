@@ -31,7 +31,7 @@ class IRC
 	#  Helper functions.
 	###
 	# Connection functions
-	def nick nick : String
+	def nick(nick : String)
 		send "NICK #{nick}"
 	end
 	def receive
@@ -52,20 +52,20 @@ class IRC
 			end
 		end
 	end
-	def quit reason=""
+	def quit(reason="")
 		send "QUIT" if reason == ""
 		send "QUIT :#{reason}"
 	end
 
 	# Message sending functions
-	def send msg=""
+	def send(msg="")
 		if msg != ""
 			@socket.puts(msg + "\r\n")
 			Output.sentline msg
 			@socket.flush
 		end
 	end
-	def msg chan : String, msg : String
+	def msg(chan : String, msg : String)
 		msg.each_line {|line|
 			if line != ""
 				length = 512-("PRIVMSG #{chan} :").size
@@ -73,7 +73,7 @@ class IRC
 			end
 		}
 	end
-	def notice chan : String, msg : String
+	def notice(chan : String, msg : String)
 		msg.each_line {|line|
 			length = 512-("PRIVMSG #{chan} :").size
 			send "PRIVMSG #{chan} :" + line
@@ -81,13 +81,13 @@ class IRC
 	end
 
 	# Channel functions
-	def join chan : String
+	def join(chan : String)
 		send "JOIN #{chan}"
 	end
-	def part chan : String
+	def part(chan : String)
 		send "PART #{chan}"
 	end
-	def mode chan : String, mode : String, nick : String
+	def mode(chan : String, mode : String, nick : String)
 		send "MODE #{chan} #{mode} #{nick}"
 	end
 end

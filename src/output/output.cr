@@ -1,10 +1,10 @@
 # Output and stuff.
 class Output
-	def self.sentline line
+	def self.sentline(line)
 		puts "<= " + line
 	end
 
-	def self.receivedline line
+	def self.receivedline(line)
 		puts "=> " + line
 	end
 end

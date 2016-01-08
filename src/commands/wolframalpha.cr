@@ -38,7 +38,7 @@ end
 
 class WolframAlpha
 	@version = "v2"
-	def initialize @appid : String
+	def initialize(@appid : String)
 	end
 	def query(string)
 		res = HTTP::Client.exec("GET", "https://api.wolframalpha.com/"+ @version + "/query?format=plaintext&input=" + URI.escape(string) + "&appid=" + @appid)
